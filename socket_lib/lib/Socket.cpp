@@ -540,7 +540,7 @@ namespace sockets_lib{
 		return rc;
 	}
 
-	void UDPSocket::setSocketOption(int option_value, int on = 0 ){
+	void UDPSocket::setSocketOption(int option_value, int on ){
 		if ( setsockopt( _socket, SOL_SOCKET, option_value, &on, sizeof(on) ) ){
 			sockets_lib::throw_error( "setsockopt failed, error %d, %s", errno, strerror(errno) );
 		}	
@@ -605,7 +605,7 @@ namespace sockets_lib{
 			sockets_lib::throw_error(  "socket create failed, error %d,%s", errno, strerror(errno) );
 	}
 
-	void TCPSocket::setSocketOption(int option_value, int on = 0 ){
+	void TCPSocket::setSocketOption(int option_value, int on ){
 		if ( setsockopt( _socket, SOL_SOCKET, option_value, &on, sizeof(on) ) ){
 			sockets_lib::throw_error(  "setsockopt failed, error %d, %s", errno, strerror(errno) );
 		}	
@@ -821,7 +821,7 @@ namespace sockets_lib{
 		}
 	} 
 
-	void TCPServerSocket::listen(int backlog=5){
+	void TCPServerSocket::listen(int backlog){
 		if ( ::listen(_socket, backlog) ){
 			sockets_lib::throw_error( "listen failed, errno %d, %s", errno, strerror(errno) );
 		}

@@ -1,7 +1,7 @@
 CC=g++
-CFLAGS=-c -Wall -g
-LDFLAGS=
-OBJDIR=bin
+CFLAGS=-c -Wall -g -I../include
+LDFLAGS=-L/home/hduser/pdir/lib/ -lmycppsock
+INSTALLDIR=~/pdir/bin
 EXECUTABLE=server_tcp client_tcp \
 		server_udp client_udp \
 		server_udptest client_udptest  \
@@ -17,162 +17,165 @@ EXECUTABLE=server_tcp client_tcp \
 all: $(EXECUTABLE)
 
 server_tcp : server_tcp.o 
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@ 
 
 server_tcp.o : server_tcp.cpp 
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 client_tcp : client_tcp.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 client_tcp.o : client_tcp.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 server_udp : server_udp.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 server_udp.o : server_udp.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 client_udp : client_udp.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 client_udp.o : client_udp.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 server_udptest : server_udptest.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 server_udptest.o : server_udptest.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 client_udptest : client_udptest.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 client_udptest.o : client_udptest.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 client_tcptest : client_tcptest.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 client_tcptest.o : client_tcptest.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 server_tcptest : server_tcptest.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 server_tcptest.o : server_tcptest.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 client_tcp_hb : client_tcp_hb.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 client_tcp_hb.o : client_tcp_hb.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+
+client_tcp_nl : client_tcp_nl.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+client_tcp_nl.o : client_tcp_nl.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 server_tcp_hb : server_tcp_hb.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 server_tcp_hb.o : server_tcp_hb.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 server_tcp_nl : server_tcp_nl.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 server_tcp_nl.o : server_tcp_nl.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 tcpecho : tcpecho.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 tcpecho.o : tcpecho.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 shutdownc : shutdownc.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
-shutdown.o : shutdown.cpp
-	$(CC) $(CFLAGS) $< -o $@
+shutdownc.o : shutdownc.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 rlnumd : rlnumd.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
-rlumd.o : rlnumd.cpp
-	$(CC) $(CFLAGS) $< -o $@
+rlnumd.o : rlnumd.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 
 udpecho1 : udpecho1.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 udpecho1.o : udpecho1.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 udpclient : udpclient.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 udpclient.o : udpclient.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 udpecho2 : udpecho2.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 udpecho2.o : udpecho2.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 mytcpmux : mytcpmux.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 mytcpmux.o : mytcpmux.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 mytcpmux_client : mytcpmux_client.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 mytcpmux_client.o : mytcpmux_client.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 mykeep : mykeep.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 mykeep.o : mykeep.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 xout1 : xout1.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 xout1.o : xout1.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 mykeep2 : mykeep2.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 mykeep2.o : mykeep2.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 xout2 : xout2.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 xout2.o : xout2.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 xout3 : xout3.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 xout3.o : xout3.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 extsys : extsys.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 extsys.o : extsys.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 
 clean:
-	rm $(OBJDIR)/*.o
+	rm $(INSTALLDIR)/*.o
 
 install:
-	mkdir -p $(OBJDIR)
-	mv $(EXECUTABLE) $(OBJDIR)/
-	cp mp.sh $(OBJDIR)/
-	chmod +x $(OBJDIR)/mp.sh
-	mv *.o $(OBJDIR)/
+	cp mp.sh $(INSTALLDIR)/
+	chmod +x $(INSTALLDIR)/mp.sh
