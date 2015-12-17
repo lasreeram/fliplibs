@@ -10,13 +10,13 @@ int main(int argc, char** argv){
 	char* hname;
 	char* sname;
 	int rc = -1;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	if ( argc == 3 ){
 		hname = argv[1];
 		sname = argv[2];
 	}else{
-		sockets_lib::log( "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log( "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -31,13 +31,13 @@ int main(int argc, char** argv){
 			//peer address might change in recvfrom
 			rc = sock->recvFrom( buf, sizeof(buf) - 1 );
 			if ( rc == 0 )
-				sockets_lib::throw_error( "EOF received" );
+				debug_lib::throw_error( "EOF received" );
 			buf[rc] = '\0';
 			fputs( buf, stdout );
 		}
 		delete sock;
-	}catch(SocketException& e){
-		sockets_lib::log( "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

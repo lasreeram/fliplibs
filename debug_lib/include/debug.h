@@ -2,7 +2,7 @@
 #define _DEBUG_LIB_H_
 
 namespace debug_lib{
-	void init(const char* argv0);
+	void init(char* argv0);
 	void logDebugInSyslog();
 	void logDebugInStdOut();
 	void throw_fatal_error( const char* format, ... );

@@ -14,12 +14,12 @@ class StdInReadHandler : public IOPollHandler {
 		if ( fgets( lout, sizeof(lout), stdin ) == NULL ){
 			mgr->removeFromReadSet(0);
 			if( use_close == true){
-				sockets_lib::log( "call close" );
+				debug_lib::log( "call close" );
 				_socket->close();
 				sleep(5);
 				exit(0);
 			}else{
-				sockets_lib::log( "call shutdown" );
+				debug_lib::log( "call shutdown" );
 				_socket->shutdown(1);
 			}
 		}else{
@@ -39,9 +39,9 @@ class SocketReadHandler : public IOPollHandler {
 	void handle ( IOPollManager* mgr ){
 		rc = _socket->recv_header( buf, sizeof(buf)-1 );
 		if ( rc == 0 )
-			sockets_lib::throw_error( "server disconnected" );
+			debug_lib::throw_error( "server disconnected" );
 		buf[rc] = '\0';
-		sockets_lib::log( "server responds:%s\n", buf );
+		debug_lib::log( "server responds:%s\n", buf );
 		return;
 	}
 	private:
@@ -53,7 +53,7 @@ class SocketReadHandler : public IOPollHandler {
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	opterr = false;
 	char c;
@@ -92,8 +92,8 @@ int main(int argc, char** argv){
 		delete sockReadHandler;
 		delete stdinReadHandler;
 		
-	}catch(SocketException& e){
-		sockets_lib::log(  "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log(  "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

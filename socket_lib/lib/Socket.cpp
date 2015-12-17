@@ -2,73 +2,6 @@
 
 namespace sockets_lib{
 
-	char* program_name;
-	bool use_syslog = false;
-	bool debug_off = false;
-
-	void logDebugInSyslog(){
-		use_syslog = true;
-	}
-
-	void logDebugInStdOut(){
-		use_syslog = false;
-	}	
-
-	void throw_fatal_error( const char* format, ... ){
-		char buf[2048] = {0};
-		va_list ap;
-		va_start(ap, format);
-		vsprintf(buf, format, ap);
-		if ( use_syslog ){
-			syslog(LOG_USER|LOG_CRIT, "%s", buf );
-		}else{
-			if ( errno )
-				printf("%s: error type = %d, errno = %d(%s), error = %s\n", 
-						program_name, LOG_CRIT, errno, strerror(errno), buf );
-			else
-				printf("%s: error type = %d, error = %s\n", program_name, LOG_CRIT, buf );
-		}
-		//vsyslog(LOG_USER|err, format, ap );
-		va_end(ap);
-		SocketException ex(buf);
-		throw ex;
-	}
-
-	void throw_error( const char* format, ... ){
-		char buf[2048] = {0};
-		va_list ap;
-		va_start(ap, format);
-		vsprintf(buf, format, ap);
-		if ( use_syslog ){
-			syslog(LOG_USER|LOG_ERR, "%s", buf );
-		}else{
-			if ( errno )
-				printf("%s: error type = %d, errno = %d(%s), error = %s\n", 
-							program_name, LOG_ERR, errno, strerror(errno), buf );
-			else
-				printf("%s: error type = %d, error = %s\n", program_name, LOG_ERR, buf );
-		}
-		//vsyslog(LOG_USER|err, format, ap );
-		va_end(ap);
-		SocketException ex(buf);
-		throw ex;
-	}
-
-	void log( const char* format, ... ){
-		if ( debug_off )
-			return;
-		char buf[2048] = {0};
-		va_list ap;
-		va_start(ap, format);
-		vsprintf(buf, format, ap);
-		if ( use_syslog )
-			syslog(LOG_USER|LOG_INFO, "%s", buf );
-		else
-			printf("%s: %s\n", program_name, buf );
-		//vsyslog(LOG_USER|err, format, ap );
-		va_end(ap);
-	}
-
 	IOPollManager::IOPollManager(){
 		FD_ZERO( &_readfds );
 		FD_ZERO( &_writefds );
@@ -154,12 +87,12 @@ namespace sockets_lib{
 						NULL
 					); 
 			if ( rc < 0 )
-				sockets_lib::throw_error(  "select failed %d", errno );
+				debug_lib::throw_error(  "select failed %d", errno );
 			if ( rc == 0 ){
 				if( _timeoutHandler ){
 					_timeoutHandler->handle(this);
 				}else
-					sockets_lib::throw_error(  "timeout handler not configured" );
+					debug_lib::throw_error(  "timeout handler not configured" );
 				
 				return;
 			}
@@ -289,7 +222,7 @@ namespace sockets_lib{
 
 		tp.handler = handler;
 		if ( clock_gettime( CLOCK_REALTIME, &tp.tv ) < 0 )	
-			sockets_lib::throw_error( "clock get time returned error" );
+			debug_lib::throw_error( "clock get time returned error" );
 
 		tp.id = timer_id;
 		long long nanosec = (long long)tp.tv.tv_nsec + ((long long)millisec * 1000000);
@@ -324,7 +257,7 @@ namespace sockets_lib{
 		}
 
 		if ( iter == _timer_info.end() )
-			sockets_lib::throw_error( "no timer to renew - logic error in application" );
+			debug_lib::throw_error( "no timer to renew - logic error in application" );
 		
 		tevent_t event = *iter; //cancel removes the timer so iter cannot be used
 		cancelTimer(timer_id);
@@ -350,7 +283,7 @@ namespace sockets_lib{
 		while(true){
 
 			if ( clock_gettime( CLOCK_REALTIME, &now ) < 0 )	
-				sockets_lib::throw_error( "clock_gettime failed" );
+				debug_lib::throw_error( "clock_gettime failed" );
 			iter = _timer_info.begin();
 			while( iter != _timer_info.end() && (compare_times( &now, &iter->tv) > 0) ){
 				iter->handler->timeout(iter->id, this);
@@ -367,7 +300,7 @@ namespace sockets_lib{
 				}
 				tvp = &tv;
 			}else if ( !_do_read && !_do_write && !_do_exception )
-				sockets_lib::throw_error( "pollAndHandleEvents called without any fds to check" );
+				debug_lib::throw_error( "pollAndHandleEvents called without any fds to check" );
 			else
 				tvp = NULL;
 
@@ -384,7 +317,7 @@ namespace sockets_lib{
 						NULL
 					); 
 			if ( rc < 0 )
-				sockets_lib::throw_error(  "select failed %d", errno );
+				debug_lib::throw_error(  "select failed %d", errno );
 			else if ( rc == 0 ) //timeout
 				continue;
 			callHandlers();
@@ -465,7 +398,7 @@ namespace sockets_lib{
 				//gethostbyname works by checking the host file or contacting nameserver using DNS protocol.
 				hp = gethostbyname(hname);
 				if ( hp == NULL )
-					sockets_lib::throw_error( "unknown host %s\n", hname );
+					debug_lib::throw_error( "unknown host %s\n", hname );
 				sap->sin_addr = *(struct in_addr*)hp->h_addr;
 			}
 		}else{
@@ -484,7 +417,7 @@ namespace sockets_lib{
 			//superseded by getaddrinfo
 			sp = getservbyname( sname, protocol );
 			if ( sp == NULL ){
-				sockets_lib::throw_error(  "unknown service: %s\n", sname );
+				debug_lib::throw_error(  "unknown service: %s\n", sname );
 			}
 			//port number returned by getservbname is already in network byte order
 			sap->sin_port = sp->s_port;
@@ -500,7 +433,7 @@ namespace sockets_lib{
 		// last argument is protocol. it is used only when SOCK_RAW is used. ICMP for example
 		_socket = socket( AF_INET, SOCK_DGRAM, 0 );
 		if ( !isvalidsock(_socket) )
-			sockets_lib::throw_error(  "udp socket create failed, error %d,%s", 
+			debug_lib::throw_error(  "udp socket create failed, error %d,%s", 
 						errno, strerror(errno) );
 
 		//peerlen must be set to sizeof peer.
@@ -511,7 +444,7 @@ namespace sockets_lib{
 	UDPSocket::UDPSocket(int socket){
 		_socket = socket;
 		if ( !isvalidsock(_socket) )
-			sockets_lib::throw_error(  "udp socket create failed, error %d,%s", 
+			debug_lib::throw_error(  "udp socket create failed, error %d,%s", 
 						errno, strerror(errno) );
 		//peerlen must be set to sizeof peer.
 		_peerlen = sizeof(_peer);
@@ -524,7 +457,7 @@ namespace sockets_lib{
 	int UDPSocket::recvFrom(char* buf, int bufsize){
 		int rc = -1;
 		if ( ( rc = ::recvfrom( _socket, buf, bufsize, 0, (struct sockaddr*) &_peer, &_peerlen )) < 0 ){
-			sockets_lib::throw_error(  "udp recvfrom failed, error %d,%s", 
+			debug_lib::throw_error(  "udp recvfrom failed, error %d,%s", 
 						errno, strerror(errno) );
 		}
 		return rc;
@@ -535,14 +468,14 @@ namespace sockets_lib{
 	int UDPSocket::sendTo( const void* buf, int buflen){
 		int rc = -1;
 		if ( (rc = ::sendto( _socket, buf, buflen, 0, (struct sockaddr*) &_peer, _peerlen )) < 0 )
-			sockets_lib::throw_error(  "udp sendto failed, error %d,%s", 
+			debug_lib::throw_error(  "udp sendto failed, error %d,%s", 
 						errno, strerror(errno) );
 		return rc;
 	}
 
 	void UDPSocket::setSocketOption(int option_value, int on ){
 		if ( setsockopt( _socket, SOL_SOCKET, option_value, &on, sizeof(on) ) ){
-			sockets_lib::throw_error( "setsockopt failed, error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error( "setsockopt failed, error %d, %s", errno, strerror(errno) );
 		}	
 		return;
 	}
@@ -554,7 +487,7 @@ namespace sockets_lib{
 	void UDPServerSocket::bind( const char* hname, const char* sname ){
 		_helper.set_address( hname, sname, &_local, "udp" );
 		if ( ::bind (_socket, (struct sockaddr*) &_local, sizeof(_local) ) ){
-			sockets_lib::throw_error( "bind failed, error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error( "bind failed, error %d, %s", errno, strerror(errno) );
 		}
 	} 
 
@@ -576,7 +509,7 @@ namespace sockets_lib{
 	void UDPClientSocket::connect( const char* hname, const char* sname ){
 		setAddress( hname, sname );
 		if( ::connect( _socket, (struct sockaddr*)&_peer, sizeof(struct sockaddr) ) <  0 )
-			sockets_lib::throw_error( "connect failed, error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error( "connect failed, error %d, %s", errno, strerror(errno) );
 	}
 
 	void UDPClientSocket::connect( struct sockaddr_in* peer ){
@@ -584,7 +517,7 @@ namespace sockets_lib{
 		memcpy( &_peer, peer, len );
 		_peerlen = len;
 		if( ::connect( _socket, (struct sockaddr*) peer, len ) <  0 )
-			sockets_lib::throw_error( "connect failed, error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error( "connect failed, error %d, %s", errno, strerror(errno) );
 	}
 
 
@@ -594,7 +527,7 @@ namespace sockets_lib{
 		// last argument is protocol. it is used only when SOCK_RAW is used. ICMP for example
 		_socket = socket( AF_INET, SOCK_STREAM, 0 );
 		if ( !isvalidsock(_socket) )
-			sockets_lib::throw_error(  "socket create failed, error %d,%s", errno, strerror(errno) );
+			debug_lib::throw_error(  "socket create failed, error %d,%s", errno, strerror(errno) );
 		setSocketOption(SO_REUSEADDR);
 		//signal(SIGPIPE, SIG_IGN);
 	}
@@ -602,12 +535,12 @@ namespace sockets_lib{
 	TCPSocket::TCPSocket(SOCKET s){
 		_socket = s;
 		if ( !isvalidsock(_socket) )
-			sockets_lib::throw_error(  "socket create failed, error %d,%s", errno, strerror(errno) );
+			debug_lib::throw_error(  "socket create failed, error %d,%s", errno, strerror(errno) );
 	}
 
 	void TCPSocket::setSocketOption(int option_value, int on ){
 		if ( setsockopt( _socket, SOL_SOCKET, option_value, &on, sizeof(on) ) ){
-			sockets_lib::throw_error(  "setsockopt failed, error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error(  "setsockopt failed, error %d, %s", errno, strerror(errno) );
 		}	
 		return;
 	}
@@ -619,7 +552,7 @@ namespace sockets_lib{
 			if ( ( rc = ::recv( _socket, buf, size, flags )) < 0 ){
 				if ( errno == EINTR )	
 					continue;
-				sockets_lib::throw_error(  "recvn failed, error %d,%s", 
+				debug_lib::throw_error(  "recvn failed, error %d,%s", 
 						errno, strerror(errno) );
 			}
 			break;
@@ -652,7 +585,7 @@ namespace sockets_lib{
 					if ( rc < 0 )
 						return -1; //calling function can continue
 					//if an EOF(rc==0) is recved the program must exit
-					sockets_lib::throw_error( "recv failed, while discarding message. error %d, %s", 
+					debug_lib::throw_error( "recv failed, while discarding message. error %d, %s", 
 						errno, strerror(errno) );
 				}
 				reclen -= len;
@@ -660,7 +593,7 @@ namespace sockets_lib{
 					len = reclen;
 			}
 			set_errno( EMSGSIZE );
-			sockets_lib::throw_error(  "logic error, space not enough, message discarded.%d, %s", 
+			debug_lib::throw_error(  "logic error, space not enough, message discarded.%d, %s", 
 					errno, strerror(errno) );
 		}
 
@@ -689,7 +622,7 @@ namespace sockets_lib{
 			if ( ( rc = ::recv( _socket, bp, cnt, flags )) < 0 ){
 				if ( errno == EINTR )	
 					continue;
-				sockets_lib::throw_error(  "recvn failed, error %d,%s", 
+				debug_lib::throw_error(  "recvn failed, error %d,%s", 
 						errno, strerror(errno) );
 			}
 			if ( rc == 0 )
@@ -712,7 +645,7 @@ namespace sockets_lib{
 			if ( cnt-- <= 0 ){
 				cnt = ::recv( _socket, b, sizeof(b), 0 );
 				if ( cnt < 0 )
-					sockets_lib::throw_error( "error in read line" );
+					debug_lib::throw_error( "error in read line" );
 				if ( cnt == 0 )
 					return 0;
 				bp = b;
@@ -735,7 +668,7 @@ namespace sockets_lib{
 
 		}
 		set_errno( EMSGSIZE );
-		sockets_lib::throw_error( "not enough space in buffer" );
+		debug_lib::throw_error( "not enough space in buffer" );
 		return -1;
 	}
 
@@ -752,7 +685,7 @@ namespace sockets_lib{
 		int flags = MSG_NOSIGNAL;
 		int rc = -1;
 		if ( (rc = ::send(_socket, buf, len, flags)) <= 0 )
-			sockets_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
 		return rc;
 	}
 
@@ -772,11 +705,11 @@ namespace sockets_lib{
 		u_int32_t reclen = htonl(len);
 		int flags = MSG_NOSIGNAL;
 		if ( ( rc = ::send(_socket, &reclen, sizeof(u_int32_t), flags )) < 0 ){
-			sockets_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
 		}
 		
 		if ( (rc = ::send(_socket, buf, len, flags)) <= 0 )
-			sockets_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
 		*/
 
 		u_int32_t reclen = htonl(len);
@@ -787,7 +720,7 @@ namespace sockets_lib{
 		dataitems[1].iov_len = len;
 		rc = ::writev( _socket, dataitems, 2);
 		if ( rc <= 0 )
-			sockets_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error(  "send returned an error %d, %s", errno, strerror(errno) );
 
 		//if ( sigprocmask(SIG_UNBLOCK, &pipemask, NULL ) == -1 ){
 		//	sockets_lib::error( 1,  "signal SIGPIPE is blocked" );
@@ -797,19 +730,19 @@ namespace sockets_lib{
 	
 	void TCPSocket::shutdown(int type){
 		if ( ::shutdown( _socket, type ) )
-			sockets_lib::throw_error( "shutdown failed " );
+			debug_lib::throw_error( "shutdown failed " );
 	}
 
 	void TCPSocket::close(){
 		if ( ::close(_socket) )
-			sockets_lib::throw_error( "close failed" );
+			debug_lib::throw_error( "close failed" );
 	}
 
 	int TCPSocket::getFd(){ return _socket; }
 
 	TCPSocket::~TCPSocket(){
 		if ( ::close(_socket) )
-			sockets_lib::log( "close failed" );
+			debug_lib::log( "close failed" );
 	}
 
 //TCPServerSocket defintiion
@@ -817,19 +750,19 @@ namespace sockets_lib{
 	void TCPServerSocket::bind( const char* hname, const char* sname ){
 		_helper.set_address( hname, sname, &_local, "tcp" );
 		if ( ::bind (_socket, (struct sockaddr*) &_local, sizeof(_local) ) ){
-			sockets_lib::throw_error( "bind failed, error %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error( "bind failed, error %d, %s", errno, strerror(errno) );
 		}
 	} 
 
 	void TCPServerSocket::listen(int backlog){
 		if ( ::listen(_socket, backlog) ){
-			sockets_lib::throw_error( "listen failed, errno %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error( "listen failed, errno %d, %s", errno, strerror(errno) );
 		}
 	}
 
 	TCPSocket* TCPServerSocket::accept(){
 		SOCKET s1 = ::accept(_socket, (struct sockaddr*) &_peer, &_peerlen );
-		sockets_lib::log ( "inside accept socket %d", getpid() );
+		debug_lib::log ( "inside accept socket %d", getpid() );
 		TCPSocket* accept_socket = new TCPAcceptSocket(s1);
 		return accept_socket;
 	}
@@ -839,7 +772,7 @@ namespace sockets_lib{
 	void TCPClientSocket::connect(const char* hname, const char* sname){
 		_helper.set_address( hname, sname, &_peer, "tcp" );
 		if ( ::connect( _socket, (struct sockaddr*) &_peer, sizeof(_peer) ) )
-			sockets_lib::throw_error(  "connect failed, errno %d, %s", errno, strerror(errno) );
+			debug_lib::throw_error(  "connect failed, errno %d, %s", errno, strerror(errno) );
 	}
 
 

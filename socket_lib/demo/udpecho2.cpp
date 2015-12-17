@@ -13,14 +13,14 @@ int main(int argc, char** argv){
 	char buf[120];
 
 	pidsz = sprintf(buf, "%d: ", getpid() );
-	INIT();
-	sockets_lib::logDebugInSyslog();
+	debug_lib::init(argv[0]);
+	debug_lib::logDebugInSyslog();
 	
 	try{
 		UDPSocket* socket = new UDPSocket(0);
 		rc = socket->recvFrom( buf+pidsz, sizeof(buf)-pidsz );
 		if ( rc == 0 ){
-			sockets_lib::throw_error( "end of file on recv" );
+			debug_lib::throw_error( "end of file on recv" );
 		}
 
 		UDPClientSocket* clientsocket = new UDPClientSocket();
@@ -30,28 +30,28 @@ int main(int argc, char** argv){
 		if ( fork() != 0 ){
 			exit(0);
 		}
-		sockets_lib::log( "child continues" );
+		debug_lib::log( "child continues" );
 
 		//child process
 		while( strncmp( buf + pidsz, "done", 4 ) != 0 ){
 			clientsocket->sendTo( buf, rc+pidsz );
-			sockets_lib::log( "%s", buf );
+			debug_lib::log( "%s", buf );
 			pidsz = sprintf(buf, "%d: ", getpid() );
 			alarm(30);
 			rc = clientsocket->recvFrom( buf+pidsz, sizeof(buf) - pidsz );
 			alarm(0);
 			buf[rc+pidsz] = '\0';
-			sockets_lib::log( "%s", buf+pidsz );
+			debug_lib::log( "%s", buf+pidsz );
 		}
 		delete clientsocket;
 		exit(0);
-	}catch(SocketException& e){
+	}catch(debug_lib::Exception& e){
 		alarm(0);
-		sockets_lib::log( "exit due to error in server: %s", e.what() );
+		debug_lib::log( "exit due to error in server: %s", e.what() );
 		exit(1);
         }catch(...){
 		alarm(0);
-		sockets_lib::log( "exit due to error in server: %s", "unknown error" );
+		debug_lib::log( "exit due to error in server: %s", "unknown error" );
 		exit(1);
 	}
 	

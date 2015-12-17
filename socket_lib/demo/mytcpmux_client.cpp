@@ -10,13 +10,13 @@ void print_help(){
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	if ( argc == 3 ){
 		hname = argv[1];
 		sname = argv[2];
 	}else{
-		sockets_lib::log(  "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log(  "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -32,12 +32,12 @@ int main(int argc, char** argv){
 			memset(buf, '\0', sizeof(buf) );
 			rc = sock->readLine( buf, sizeof(buf) - 1);
 			if ( rc == 0 )
-				sockets_lib::throw_error( "end of file received on socket" );
+				debug_lib::throw_error( "end of file received on socket" );
 			std::cout << buf;
 		}
 		delete sock;
-	}catch(SocketException& e){
-		sockets_lib::log(  "exit due to error: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log(  "exit due to error: %s", e.what());
 		exit(1);
 	}
 	return 0;

@@ -13,8 +13,8 @@ class IOTimeoutHandler : public IOPollHandler {
 	public:
 	IOTimeoutHandler(TCPSocket* socket) { _socket = socket; }
         void handle ( IOPollManager* mgr ){
-		sockets_lib::log( "timeout occurred" );
-                sockets_lib::throw_error( "terminating" );
+		debug_lib::log( "timeout occurred" );
+                debug_lib::throw_error( "terminating" );
                 return;
         }
 	private:
@@ -28,9 +28,9 @@ class StdInReadHandler : public IOPollHandler {
 		if ( fgets( lout, sizeof(lout), stdin ) == NULL ){
 			mgr->removeFromReadSet(0);
 			_socket->close();
-			sockets_lib::throw_error( "fgets returns null" );
+			debug_lib::throw_error( "fgets returns null" );
 		}else{
-			sockets_lib::log( "sending %s", lout );
+			debug_lib::log( "sending %s", lout );
 			_socket->writeLine(lout, strlen(lout));
 			mgr->removeFromReadSet(0); //until ACK is recvd
 			mgr->resetTimer(ACK_TIME, 0);
@@ -56,15 +56,15 @@ class SocketReadHandler : public IOPollHandler {
 		rc = _socket->readLine( buf, sizeof(buf)-1 );
 		//rc < 0 readLine throws exception
 		if ( rc == 0 )
-			sockets_lib::throw_error( "server disconnected" );
+			debug_lib::throw_error( "server disconnected" );
 		else if ( rc == 2 && buf[0] == ACK ){
-			sockets_lib::log( "ack received" );
+			debug_lib::log( "ack received" );
 			mgr->addSourceForRead( 0, _stdinHandler);
 			mgr->resetTimer(0, 0);
 		}
 		else{ //rc > 0
 			buf[rc] = '\0';
-			sockets_lib::throw_error( "unexpected message from server:%x, %x\n", buf[0], buf[1] );
+			debug_lib::throw_error( "unexpected message from server:%x, %x\n", buf[0], buf[1] );
 		}
 		return;
 	}
@@ -78,7 +78,7 @@ class SocketReadHandler : public IOPollHandler {
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 
 
@@ -105,8 +105,8 @@ int main(int argc, char** argv){
 		delete sockReadHandler;
 		delete stdinReadHandler;
 		
-	}catch(SocketException& e){
-		sockets_lib::log(  "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log(  "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

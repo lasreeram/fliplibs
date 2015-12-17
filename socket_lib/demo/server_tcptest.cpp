@@ -4,7 +4,7 @@ using namespace sockets_lib;
 void service(TCPSocket* sock, int rcvbufsz){
 	char* buf = (char*) malloc(rcvbufsz);
 	if ( buf == NULL )
-		sockets_lib::throw_fatal_error( "malloc:cannot allocate memory" );
+		debug_lib::throw_fatal_error( "malloc:cannot allocate memory" );
 
 	int rc = -1;
 	int bytes = 0;
@@ -16,20 +16,20 @@ void service(TCPSocket* sock, int rcvbufsz){
 		bytes += rc;
 		blks += 1;
 	}
-	sockets_lib::log(  "%d bytes received, number of blocks = %d", bytes, blks );
+	debug_lib::log(  "%d bytes received, number of blocks = %d", bytes, blks );
 
 	free(buf);
 	return;
 }
 
 void print_help(){
-	sockets_lib::log(  "server [-b<recv buf size>] <hostname> <port>" );
+	debug_lib::log(  "server [-b<recv buf size>] <hostname> <port>" );
 }
 
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 	int rcvbufsz = 5000 * 1044;
 
 	opterr = 0;
@@ -54,7 +54,7 @@ int main(int argc, char** argv){
 		hname = NULL;
 		sname = argv[optind];
 	}else{
-		sockets_lib::log(  "exit: wrong arguments passed " );
+		debug_lib::log(  "exit: wrong arguments passed " );
 		print_help();
 		exit(1);
 	}
@@ -72,11 +72,11 @@ int main(int argc, char** argv){
 			delete acceptsock;
 		} while(0);
 
-	}catch(sockets_lib::SocketException& e){
-		sockets_lib::log(  "exit: due to error in server %s", e.what() );
+	}catch(sockets_lib::debug_lib::Exception& e){
+		debug_lib::log(  "exit: due to error in server %s", e.what() );
 		exit(1);
 	}catch(...){
-		sockets_lib::log(  "exit: due to unknown error in server" );
+		debug_lib::log(  "exit: due to unknown error in server" );
 		exit(1);
 	}
 	return 0;

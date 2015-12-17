@@ -12,7 +12,7 @@ int main(int argc, char** argv){
 	int blks = 5000;
 	int sndbufsz = 32 * 1024;
 	int sndsz = 1440;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	opterr = 0;
 	char c;
@@ -39,7 +39,7 @@ int main(int argc, char** argv){
 		hname = argv[optind];
 		sname = argv[optind+1];
 	}else{
-		sockets_lib::log( "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log( "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -47,7 +47,7 @@ int main(int argc, char** argv){
 	char* buf = NULL;
 	buf = (char*) malloc( sndsz ); 
 	if ( buf == NULL )
-		sockets_lib::throw_fatal_error( "cannot allocate memory. malloc failed" );
+		debug_lib::throw_fatal_error( "cannot allocate memory. malloc failed" );
 
 	try{
 		TCPClientSocket* sock = new TCPClientSocket();
@@ -60,8 +60,8 @@ int main(int argc, char** argv){
 		}
 		std::cout << "end value of blks = " << blks << std::endl;
 		delete sock;
-	}catch(SocketException& e){
-		sockets_lib::log( "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

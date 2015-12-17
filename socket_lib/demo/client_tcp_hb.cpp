@@ -15,13 +15,13 @@ class IOReadHandler : public IOPollHandler {
 	IOReadHandler(TCPSocket* socket) { _socket = socket; }
 	void handle ( IOPollManager* mgr ){
 		msg_t msg = {0};
-		sockets_lib::log( "read a heartbeat" );
+		debug_lib::log( "read a heartbeat" );
 		int rc = _socket->recvn( (char*)&msg, sizeof(msg_t) );
 		if ( rc == 0 )
-			sockets_lib::throw_error( "EOF received on socket" );
+			debug_lib::throw_error( "EOF received on socket" );
 		_missed_heart_beats = 0;
 		mgr->resetTimer( T1, 0 );
-		sockets_lib::log( "read handler done" );
+		debug_lib::log( "read handler done" );
 		return;
 	}
 	private:
@@ -32,16 +32,16 @@ class IOTimeoutHandler : public IOPollHandler {
 	public:
 	IOTimeoutHandler(TCPSocket* socket) { _socket = socket; }
         void handle ( IOPollManager* mgr ){
-		sockets_lib::log( "timeout occurred" );
+		debug_lib::log( "timeout occurred" );
                 _missed_heart_beats++;
                 if ( _missed_heart_beats > 3 )
-                        sockets_lib::throw_error( "connection is dead. No heart beat" );
-                sockets_lib::log ( "sending heart beat message" );
+                        debug_lib::throw_error( "connection is dead. No heart beat" );
+                debug_lib::log ( "sending heart beat message" );
                 msg_t msg = {0};
                 msg.type = htonl( MSG_HEARTBEAT );
                 _socket->send_no_header( (char*)&msg, sizeof(msg) );
                 mgr->resetTimer( T2, 0 );
-		sockets_lib::log( "timeout handle done" );
+		debug_lib::log( "timeout handle done" );
                 return;
         }
 	private:
@@ -51,13 +51,13 @@ class IOTimeoutHandler : public IOPollHandler {
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	if ( argc == 3 ){
 		hname = argv[1];
 		sname = argv[2];
 	}else{
-		sockets_lib::log(  "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log(  "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -75,8 +75,8 @@ int main(int argc, char** argv){
 		delete readHandler;
 		delete timeoutHandler;
 		delete sock;
-	}catch(SocketException& e){
-		sockets_lib::log(  "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log(  "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

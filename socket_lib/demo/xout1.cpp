@@ -35,10 +35,10 @@ class SocketReadHandler : public IOPollHandler {
 		rc = _socket->readLine( buf, sizeof(buf)-1 );
 		//rc < 0 readLine throws exception
 		if ( rc == 0 )
-			sockets_lib::throw_error( "server disconnected" );
+			debug_lib::throw_error( "server disconnected" );
 		else{ //rc > 0
 			buf[rc] = '\0';
-			sockets_lib::throw_error( "unexpected message from server:%s\n", buf );
+			debug_lib::throw_error( "unexpected message from server:%s\n", buf );
 		}
 		return;
 	}
@@ -51,7 +51,7 @@ class SocketReadHandler : public IOPollHandler {
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 
 
@@ -76,8 +76,8 @@ int main(int argc, char** argv){
 		delete sockReadHandler;
 		delete stdinReadHandler;
 		
-	}catch(SocketException& e){
-		sockets_lib::log(  "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log(  "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

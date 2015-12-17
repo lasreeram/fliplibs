@@ -11,7 +11,7 @@ int main(int argc, char** argv){
 	int rc;
 	int pidsz;
 	char buf[120];
-	INIT();
+	debug_lib::init(argv[0]);
 
 	pidsz = sprintf(buf, "%d: ", getpid() );
 	
@@ -19,16 +19,16 @@ int main(int argc, char** argv){
 		UDPSocket* socket = new UDPSocket(0);
 		rc = socket->recvFrom( buf+pidsz, sizeof(buf)-pidsz );
 		if ( rc == 0 ){
-			sockets_lib::throw_error( "end of file on recv" );
+			debug_lib::throw_error( "end of file on recv" );
 		}
 		socket->sendTo( buf, rc+pidsz );
 		delete socket;
 		exit(0);
-	}catch(SocketException& e){
-            sockets_lib::log( "exit due to error in server: %s", e.what() );
+	}catch(debug_lib::Exception& e){
+            debug_lib::log( "exit due to error in server: %s", e.what() );
             exit(1);
         }catch(...){
-            sockets_lib::log( "exit due to error in server: %s", "unknown error" );
+            debug_lib::log( "exit due to error in server: %s", "unknown error" );
             exit(1);
 	}
 	

@@ -8,13 +8,13 @@ void service(TCPSocket* sock){
 }
 
 void print_help(){
-	sockets_lib::log(  "server <hostname> <port>" );
+	debug_lib::log(  "server <hostname> <port>" );
 }
 
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	if ( argc == 2 ){
 		hname = NULL;
@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 		hname = argv[1];
 		sname = argv[2];
 	}else{
-		sockets_lib::log( "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log( "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -40,11 +40,11 @@ int main(int argc, char** argv){
 			delete acceptsock;
 		} while(1);
 
-	}catch(sockets_lib::SocketException& e){
-		sockets_lib::log( "exit due to error in server: %s", e.what());
+	}catch(sockets_lib::debug_lib::Exception& e){
+		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}catch(...){
-		sockets_lib::log( "exit due to error in server: %s", "unknown error" );
+		debug_lib::log( "exit due to error in server: %s", "unknown error" );
 		exit(1);
 	}
 	return 0;

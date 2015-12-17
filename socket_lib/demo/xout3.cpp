@@ -71,7 +71,7 @@ class StdInReadHandler : public IOPollMultiTimerHandler {
 		if ( fgets( lout, sizeof(lout), stdin ) == NULL ){
 			mgr->removeFromReadSet(0);
 			_socket->close();
-			sockets_lib::throw_error( "fgets returns null" );
+			debug_lib::throw_error( "fgets returns null" );
 		}else{
 			packet_t message;
 			uint32_t msg_id = getNextMessageId();
@@ -82,7 +82,7 @@ class StdInReadHandler : public IOPollMultiTimerHandler {
 			vector<char> timer_data( message_ptr, message_ptr + message.getLength() );
 			message.host_to_network();
 			_socket->send_header(&message, message.getLength() );
-			sockets_lib::log( "message %u sent ", ntohl(message.cookie) );
+			debug_lib::log( "message %u sent ", ntohl(message.cookie) );
 			mgr->setTimer( msg_id, FIRST_ACK_WAIT_TIME, _timeoutHandler, timer_data );
 		}
 		
@@ -104,7 +104,7 @@ class SocketReadHandler : public IOPollMultiTimerHandler {
 		vector<char> timerdata;
 		int ret = mgr->getTimerData( timer_id, timerdata );
 		if ( ret < 0 ){
-			sockets_lib::log( "no timer data saved" );
+			debug_lib::log( "no timer data saved" );
 			return;
 		}
 		packet_t message;
@@ -113,13 +113,13 @@ class SocketReadHandler : public IOPollMultiTimerHandler {
 			message.retries++;
 			char* message_ptr = reinterpret_cast<char*>(&message);
 			vector<char> new_timer_data( message_ptr, message_ptr + message.getLength() );
-			sockets_lib::log( "retrying message %u, %d", timer_id, message.retries );
+			debug_lib::log( "retrying message %u, %d", timer_id, message.retries );
 			message.host_to_network();
 			_socket->send_header(&message, message.getLength() );
-			sockets_lib::log( "sent message %u, %u", timer_id, message.getLength() );
+			debug_lib::log( "sent message %u, %u", timer_id, message.getLength() );
 			mgr->renewTimer( timer_id, SECOND_ACK_WAIT_TIME, new_timer_data );
 		}else {
-			sockets_lib::log( "dropping message %u", timer_id );
+			debug_lib::log( "dropping message %u", timer_id );
 			mgr->removeTimerData( timer_id );
 		}
 	}
@@ -129,7 +129,7 @@ class SocketReadHandler : public IOPollMultiTimerHandler {
 		rc = _socket->recv_no_header( recvbuf+offset,  ACK_MESSAGE_SIZE - offset );
 		//rc < 0 readLine throws exception
 		if ( rc == 0 )
-			sockets_lib::throw_error( "server disconnected" );
+			debug_lib::throw_error( "server disconnected" );
 		else {
 			offset += rc;
 			if ( offset < ACK_MESSAGE_SIZE )
@@ -138,14 +138,14 @@ class SocketReadHandler : public IOPollMultiTimerHandler {
 
 		offset = 0;
 		if ( recvbuf[0] != ACK ){
-			sockets_lib::log( "unexpected message from server:%x\n", recvbuf[0] );
+			debug_lib::log( "unexpected message from server:%x\n", recvbuf[0] );
 			return;
 		}
 
 		uint32_t msg_id;
 		memcpy( &msg_id, recvbuf+1, sizeof(uint32_t) );
 		msg_id = ntohl( msg_id );
-		sockets_lib::log( "ACK received for message %u", msg_id );
+		debug_lib::log( "ACK received for message %u", msg_id );
 		mgr->cancelTimer( msg_id );
 		return;
 	}
@@ -159,7 +159,7 @@ class SocketReadHandler : public IOPollMultiTimerHandler {
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 	//signal( SIGINT, signal_handler);
 
 	if ( argc == 3 ){
@@ -183,8 +183,8 @@ int main(int argc, char** argv){
 		delete sockReadHandler;
 		delete stdinReadHandler;
 		
-	}catch(SocketException& e){
-		sockets_lib::log(  "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log(  "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

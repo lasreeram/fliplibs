@@ -10,14 +10,14 @@ int main(int argc, char** argv){
 	char* hname;
 	char* sname;
 	int ndatagrams = 0;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	if ( argc == 4 ){
 		hname = argv[1];
 		sname = argv[2];
 		ndatagrams = atoi(argv[3]);
 	}else{
-		sockets_lib::log( "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log( "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -35,8 +35,8 @@ int main(int argc, char** argv){
 		std::cout << "sending eof" << std::endl;
 		sock->sendTo ( "", 0 );
 		delete sock;
-	}catch(SocketException& e){
-		sockets_lib::log( "exit due to error in server: %s", e.what());
+	}catch(debug_lib::Exception& e){
+		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}
 	return 0;

@@ -19,16 +19,10 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <vector>
+#include <debug.h>
 
 using namespace std;
 namespace sockets_lib {
-	extern char* program_name;
-	extern bool use_syslog;
-	extern bool debug_off;
-
-	void logDebugInSyslog();
-	void logDebugInStdOut();
-
 	class Socket {
 		public:
 			virtual int getFd() = 0;
@@ -56,11 +50,6 @@ namespace sockets_lib {
 		private:
 			string _error;
 	};
-
-
-	void throw_fatal_error( const char* format, ... );
-	void throw_error( const char* format, ... );
-	void log( const char* format, ... );
 
 
 	class IOPollManager;

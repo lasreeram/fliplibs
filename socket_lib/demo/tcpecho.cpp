@@ -9,9 +9,9 @@ void service(TCPSocket* sock){
 	while(true){
 		rc = sock->recv_header( buf, sizeof(buf)-1 );
 		if ( rc == 0 )
-			sockets_lib::throw_error( "client disconnected" );
+			debug_lib::throw_error( "client disconnected" );
 		buf[rc] = '\0';
-		sockets_lib::log( "%s\n", buf );
+		debug_lib::log( "%s\n", buf );
 		if ( nap_time )
 			sleep(nap_time);
 		sock->send_header( buf, strlen(buf) );
@@ -20,13 +20,13 @@ void service(TCPSocket* sock){
 }
 
 void print_help(){
-	sockets_lib::log(  "tcpecho [-n<naptime] <hostname> <port>" );
+	debug_lib::log(  "tcpecho [-n<naptime] <hostname> <port>" );
 }
 
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	char ch;
 	opterr = 0;
@@ -48,7 +48,7 @@ int main(int argc, char** argv){
 		hname = argv[optind];
 		sname = argv[optind+1];
 	}else{
-		sockets_lib::log( "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log( "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -65,11 +65,11 @@ int main(int argc, char** argv){
 			delete acceptsock;
 		} while(1);
 
-	}catch(sockets_lib::SocketException& e){
-		sockets_lib::log( "exit due to error in server: %s", e.what());
+	}catch(sockets_lib::debug_lib::Exception& e){
+		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}catch(...){
-		sockets_lib::log( "exit due to error in server: %s", "unknown error" );
+		debug_lib::log( "exit due to error in server: %s", "unknown error" );
 		exit(1);
 	}
 	return 0;

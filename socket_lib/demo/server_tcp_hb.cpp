@@ -4,7 +4,7 @@ using namespace sockets_lib;
 
 //Server with heart beat message
 void print_help(){
-	sockets_lib::log(  "server <hostname> <port>" );
+	debug_lib::log(  "server <hostname> <port>" );
 }
 int _missed_heart_beats = 0;
 
@@ -12,11 +12,11 @@ class IOReadHandler : public IOPollHandler {
         public:
         IOReadHandler(TCPSocket* socket) { _socket = socket; }
         void handle ( IOPollManager* mgr ){
-		sockets_lib::log ( "read a message" );
+		debug_lib::log ( "read a message" );
 		msg_t msg = {0};
 		int rc = _socket->recvn(&msg, sizeof(msg_t));
 		if ( rc == 0 )
-			sockets_lib::throw_error( "EOF received" );
+			debug_lib::throw_error( "EOF received" );
 		
 		_missed_heart_beats = 0;
 		mgr->resetTimer( T1+T2, 0 );
@@ -26,11 +26,11 @@ class IOReadHandler : public IOPollHandler {
 				_socket->send_no_header( (char*)&msg, sizeof(msg_t) );
 				break;
 			default:
-				sockets_lib::throw_error( "unknown message type received %d", 
+				debug_lib::throw_error( "unknown message type received %d", 
 					msgtype );
 				break;
 		}
-		sockets_lib::log ( "read handle done" );
+		debug_lib::log ( "read handle done" );
                 return;
         }
         private:
@@ -44,13 +44,13 @@ class IOTimeoutHandler : public IOPollHandler {
 		_missed_heart_beats = 0;
 	}
         void handle ( IOPollManager* mgr ){
-		sockets_lib::log ( "timeout happened" );
+		debug_lib::log ( "timeout happened" );
 		_missed_heart_beats++;
 		if ( _missed_heart_beats > 3 )
-			sockets_lib::throw_error( "connection is dead. No heart beat" );
-		sockets_lib::log ( "missed heart beat" );
+			debug_lib::throw_error( "connection is dead. No heart beat" );
+		debug_lib::log ( "missed heart beat" );
 		mgr->resetTimer( T2, 0 );
-		sockets_lib::log ( "timeout handle done" );
+		debug_lib::log ( "timeout handle done" );
                 return;
         }
         private:
@@ -76,7 +76,7 @@ void service(TCPSocket* sock){
 int main(int argc, char** argv){
 	char* hname;
 	char* sname;
-	INIT();
+	debug_lib::init(argv[0]);
 
 	if ( argc == 2 ){
 		hname = NULL;
@@ -85,7 +85,7 @@ int main(int argc, char** argv){
 		hname = argv[1];
 		sname = argv[2];
 	}else{
-		sockets_lib::log( "exit: wrong arguments passed %d\n", argc );
+		debug_lib::log( "exit: wrong arguments passed %d\n", argc );
 		print_help();
 		exit(1);
 	}
@@ -102,11 +102,11 @@ int main(int argc, char** argv){
 			delete acceptsock;
 		} while(0);
 
-	}catch(sockets_lib::SocketException& e){
-		sockets_lib::log( "exit due to error in server: %s", e.what());
+	}catch(sockets_lib::debug_lib::Exception& e){
+		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}catch(...){
-		sockets_lib::log( "exit due to error in server: %s", "unknown error" );
+		debug_lib::log( "exit due to error in server: %s", "unknown error" );
 		exit(1);
 	}
 	return 0;
