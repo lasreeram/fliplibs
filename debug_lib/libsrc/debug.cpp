@@ -81,6 +81,21 @@ namespace error_lib{
                 throw ex;
         }
 
+        void log_no_newline( const char* format, ... ){
+                if ( debug_off )
+                        return;
+                char buf[2048] = {0};
+                va_list ap;
+                va_start(ap, format);
+                vsprintf(buf, format, ap);
+                if ( use_syslog )
+                        syslog(LOG_USER|LOG_INFO, "%s", buf );
+                else
+                        printf("%s: %s", program_name, buf );
+                //vsyslog(LOG_USER|err, format, ap );
+                va_end(ap);
+        }
+
         void log( const char* format, ... ){
                 if ( debug_off )
                         return;

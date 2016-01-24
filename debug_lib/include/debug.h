@@ -8,6 +8,7 @@ namespace debug_lib{
 	void throw_fatal_error( const char* format, ... );
 	void throw_error( const char* format, ... );
 	void log( const char* format, ... );
+	void log_no_newline( const char* format, ... );
 }
 
 #endif
