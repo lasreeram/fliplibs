@@ -1,7 +1,7 @@
 VPATH = .:../include:/usr/include
 CC=g++
 INSTALLDIR = ~/pdir/lib
-CFLAGS=-c -Wall -g -fPIC -I../include -shared -o 
+CFLAGS=-c -Wall -g -fPIC -I../include -I/home/hduser/pdir/include -shared -o 
 CLEANEXTS = o so
 .PHONY:all
 all : libmyipc.so
