@@ -1,4 +1,5 @@
 #include <Socket.h>
+#include <debug.h>
 using namespace sockets_lib;
 
 void service(TCPSocket* sock){
@@ -40,7 +41,7 @@ int main(int argc, char** argv){
 			delete acceptsock;
 		} while(1);
 
-	}catch(sockets_lib::debug_lib::Exception& e){
+	}catch(debug_lib::Exception& e){
 		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}catch(...){

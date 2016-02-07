@@ -187,7 +187,7 @@ int main( int argc, char** argv ){
 	char* hostname;
 	char* service;
 	debug_lib::init(argv[0]);
-	logDebugInSyslog();
+	debug_lib::logDebugInSyslog();
 
 	if ( argc == 3 ){
 		hostname = argv[1];
@@ -213,7 +213,7 @@ int main( int argc, char** argv ){
 			//acceptsocket->close();
 		}
 
-        }catch(sockets_lib::debug_lib::Exception& e){
+        }catch(debug_lib::Exception& e){
 		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
         }catch(...){

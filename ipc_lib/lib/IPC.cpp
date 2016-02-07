@@ -29,15 +29,15 @@ namespace ipc_lib{
 			free(arg.array);
 			if ( rc < 0 )
 				debug_lib::throw_error( "cannot semctl for mutex %s", _key.c_str() );
-			debug_lib::log( "mutex: semaphore %s created successfully for size %d and ready for access", 
-					_key.c_str(), num );
+			debug_lib::log( "mutex: semaphore %s created successfully, id = %d, for size %d and ready for access", 
+					_key.c_str(), _mutex, num );
 		}else if ( errno == EEXIST ){
-			debug_lib::log( "%s semaphore already exists, try accessing it", _key.c_str() );
+			debug_lib::log( "mutex: %s semaphore already exists, try accessing it", _key.c_str() );
 			//second argument is 0 - don't care if the semaphore already exists
 			_mutex = semget( _keyid, 0, 0660 );
 			if ( _mutex < 0 )
 				debug_lib::throw_error( "cannot semget for mutex %s", _key.c_str() );
-			debug_lib::log( "mutex: semaphore %s ready for access. set size = %d", _key.c_str(), num );
+			debug_lib::log( "mutex: semaphore %s ready for access. id = %d, set size = %d", _key.c_str(), _mutex, num );
 		}
 		_locks_held = 0;
 	}
@@ -48,10 +48,11 @@ namespace ipc_lib{
 		//lock is achieved by decrementing the value by 1. 
 		//another call to lock attempts to make the value negative thereby locking the semaphore.
 		lockbuf.sem_op = -1;
+		lockbuf.sem_num = num;
 		//SEM_UNDO has the effect of releasing the semaphore if the process exits.
 		//this is available only in System V and not in POSIX?
 		lockbuf.sem_flg = SEM_UNDO;
-		if ( semop( _mutex, &lockbuf, num) < 0 )
+		if ( semop( _mutex, &lockbuf, 1) < 0 )
 			debug_lib::throw_error( "cannot lock (semop) mutex %s, for index %d", _key.c_str(), num );
 
 		_locks_held++;
@@ -62,9 +63,10 @@ namespace ipc_lib{
 		struct sembuf lockbuf;
 		//unlock is achieved by incrementing the value by 1.
 		lockbuf.sem_op = 1;
+		lockbuf.sem_num = num;
 		//SEM_UNDO has the effect of releasing the semaphore if the process exits.
 		lockbuf.sem_flg = SEM_UNDO;
-		if ( semop( _mutex, &lockbuf, num ) < 0 )
+		if ( semop( _mutex, &lockbuf, 1) < 0 )
 			debug_lib::throw_error( "cannot unlock (semop) mutex %s for index %d", _key.c_str(), num );
 
 		_locks_held--;
@@ -105,13 +107,15 @@ namespace ipc_lib{
 		else
 			_numBlocks = numBlocks + (8 - (numBlocks % 8));
 		_createSize = (_blockSize * _numBlocks) + (sizeof(int) * _numBlocks) + sizeof(int);
+		bool need_to_initialize = (attach() == 0);
 		int indexTableOffset = (_blockSize * _numBlocks); 
 		int freeListHeadOffset = (_blockSize * _numBlocks) + (sizeof(int) * _numBlocks);
 		_indexTable = (int*)( (char*)_shmAddress + indexTableOffset );
 		_free_list_head = (int*)( (char*)_shmAddress + freeListHeadOffset );
-		attach();
+
+		if ( !need_to_initialize )
+			return;
 		init();
-		
 		initObj->initialize( _shmAddress, _numBlocks, _blockSize );
 		delete initObj;
 	}
@@ -119,15 +123,26 @@ namespace ipc_lib{
 	SharedMemory::~SharedMemory(){
 	}
 
-	void SharedMemory::attach(){
+	int SharedMemory::attach(){
+		int exists = 0;
+
 		//create size is space for buffers, space for links between blocks, free_list_head
-		_semid = shmget( _keyid, _createSize, SHM_R | SHM_W | IPC_CREAT );
+		_semid = shmget( _keyid, _createSize, SHM_R | SHM_W | IPC_CREAT | IPC_EXCL );
+		if ( errno == EEXIST ){
+			_semid = shmget( _keyid, _createSize, SHM_R | SHM_W | IPC_CREAT );
+			exists = 1;
+		}
+			
 		if ( _semid < 0 )
 			debug_lib::throw_error( "cannot create shared memory for key %s", _key.c_str() );
 		
 		_shmAddress = shmat( _semid, NULL, 0 );	
 		if ( _shmAddress == (void*) -1 )
 			debug_lib::throw_error( "attach to shared memory for key %s failed", _key.c_str() );
+
+		debug_lib::log( "successfully attached to shared memory %s, semid=%d, %s", _key.c_str(), _semid, 
+				((exists == 0)? "created" : "attached to existing") );
+		return exists;
 	}
 
 	void SharedMemory::init(){
@@ -141,15 +156,15 @@ namespace ipc_lib{
 		void* bp;
 		index = -1;
 		if ( *_free_list_head < 0 ){
-			debug_lib::throw_error( "out of shared memory buffers for key %s", _key.c_str() );
+			debug_lib::throw_error( "allocBlock: out of shared memory buffers for key %s", _key.c_str() );
 		}
 		index = *_free_list_head;
-		if ( checkIndexForAccess(index) )
-			debug_lib::throw_fatal_error( "shared memory corrupt for key %s", _key.c_str() );
+		if ( !checkIndexForAccess(index) )
+			debug_lib::throw_fatal_error( "allocBlock1: shared memory corrupt for key %s", _key.c_str() );
 		bp = getAddressForIndex(index);
 		int next = _indexTable[index];
-		if ( checkIndex(next) )
-			debug_lib::throw_fatal_error( "shared memory corrupt for key %s", _key.c_str() );
+		if ( !checkIndex(next) )
+			debug_lib::throw_fatal_error( "allocBlock2: shared memory corrupt for key %s", _key.c_str() );
 		*_free_list_head = next;
 		_indexTable[index] = -1;
 		return bp;
@@ -163,7 +178,7 @@ namespace ipc_lib{
 
 	bool SharedMemory::checkIndexForAccess(int index){
 		if ( index < 0 || index > (_numBlocks-1) ){
-			dumpMemory();
+			dumpMemory(NULL);
 			return false;
 		}
 		return true;
@@ -176,19 +191,29 @@ namespace ipc_lib{
 
 	void SharedMemory::freeBlock(int index){
 		if ( _indexTable[index] != -1 ){
-			dumpMemory();
-			debug_lib::throw_fatal_error( "cannot free block, invalid address" );
+			dumpMemory(NULL);
+			debug_lib::throw_fatal_error( "cannot free block, invalid address %s, index=%d", 	
+					_key.c_str(), index );
 		}
 			
 		_indexTable[index] = *_free_list_head;
 		*_free_list_head = index;
 	}
 
-	void SharedMemory::dumpMemory(){
+	void SharedMemory::dumpMemory(ShmDataDumper* applicationDumper){
+		debug_lib::log ( "legend: A=Allocated\n" );
 		debug_lib::log ( "free list head = %d", *_free_list_head );
-		for( int i = 0; i < _numBlocks; i++ )
-			debug_lib::log_no_newline( "%d-->%d,", i, _indexTable[i] );
-		debug_lib::log_no_newline("\n");
+		for( int i = 0; i < _numBlocks; i++ ){
+			if ( _indexTable[i] == -1 )
+				debug_lib::log_no_newline( "%d-->%c,", i, 'A' );
+			else
+				debug_lib::log_no_newline( "%d-->%d,", i, _indexTable[i] );
+		}
+		debug_lib::log_no_newline("\n\n");
+		if( applicationDumper == NULL )
+			return;
+		applicationDumper->dump( _shmAddress, _numBlocks, _blockSize );
+		delete applicationDumper;
 	}
 
 	int SharedMemory::getIndexForAddress(void* addr){
@@ -231,13 +256,14 @@ namespace ipc_lib{
 
 	ShmIPC::ShmIPC(){
 		//for keeping messages. maximum msg size is 1k
-		_msgQShm = new SharedMemory("MBMQ", 1024, 1000, new DataInitializer() );
+		//_msgQShm = new SharedMemory("MBMQ", 1024, 100, new DataInitializer() );
+		_msgQShm = new SharedMemoryVariableSize( 1024, 8192, 100);
 
 		//mailbox name to id mapping
 		_mailboxIdShm = new SharedMemory( "MBID", 64, 100, new MailBoxIdInitializer() );
 
 		//mailbox que by id. the number of blocks here should be equal to mailboxIdShm
-		_mailboxQShm = new SharedMemory( "MBIQ", 1024, 100, new MailBoxQInitializer() );
+		_mailboxQShm = new FixedIndexSharedMemory( "MBIQ", 1024, 100, new IntegerMinusOneInitializer() );
 
 		//meta data for shared memory. For example keeping running counter for mbid
 		_mailboxMetaData = new SharedMemory( "MBMD", 1024, 1, new MailBoxMetaInitializer() );
@@ -256,6 +282,7 @@ namespace ipc_lib{
 		if ( strlen(name) > ((unsigned int)(_mailboxIdShm->getBlockSize()-1)) )
 			debug_lib::throw_fatal_error( "name %s in createMailbox is too long", name );
 		strcpy( ptr, name );
+		debug_lib::log( "mailbox created %s at %p index %d", ptr, ptr, idIndex );
 		return idIndex;
 	}
 
@@ -269,6 +296,8 @@ namespace ipc_lib{
 	int ShmIPC::locateMailBox(const char* name){
 		char* ptr = (char*) _mailboxIdShm->getAddressForIndex(0);
 		for( int i = 0; i < _mailboxIdShm->getNumBlocks(); i++ ){
+			if ( *ptr == '\0' )
+				continue;
 			if ( strcmp( ptr, name ) == 0 ){
 				return i;
 			}
@@ -278,9 +307,10 @@ namespace ipc_lib{
 	}
 	
         int ShmIPC::send(const char* mbname, void* ptr, int len){
+		debug_lib::log( "send: attempt to send %d bytes", len );
 		int mbid = locateMailBox(mbname);
 		if ( mbid < 0 ){
-			debug_lib::log( "cannot locate destination mailbox %s\n", mbname );
+			debug_lib::log( "send: cannot locate destination mailbox %s", mbname );
 			return -1;
 		}
 		return send( mbid, ptr, len );
@@ -288,18 +318,16 @@ namespace ipc_lib{
 
         int ShmIPC::send(int mbid, void* ptr, int len){
 
-		if ( ((unsigned int)len) > (_msgQShm->getBlockSize() - sizeof(int) ) )
-			debug_lib::throw_error( "message length cannot be more than size = %d", (_msgQShm->getBlockSize() - sizeof(int)) );
+		if ( ((unsigned int)len) > (unsigned int)_msgQShm->getMaxMessageSize() )
+			debug_lib::throw_error( "message length cannot be more than size = %d", _msgQShm->getMaxMessageSize() );
 		int index;
 		AutoMutex gMutex(_global_mutex, 0);
-		char* msgbuf = (char*)_msgQShm->allocBlock(index);
+		_msgQShm->allocateAndCopy(ptr, len, index);
 		gMutex.release();
-		memcpy( msgbuf, &len, sizeof(int) );
-		memcpy( msgbuf+sizeof(int), ptr, len );
 
-		AutoMutex mutex(_record_mutex, index);
+		AutoMutex mutex(_record_mutex, mbid);
 		int* mbIdQ = (int*)_mailboxQShm->getAddressForIndex(mbid);
-		while ( *mbIdQ > 0 ){
+		while ( *mbIdQ >= 0 ){
 			mbIdQ += sizeof(int);
 			int endOfMemory = _mailboxQShm->isEndOfMemory(mbIdQ);
 			if ( endOfMemory == 1 )
@@ -312,9 +340,10 @@ namespace ipc_lib{
         }
 
         int ShmIPC::recv(const char* mbname, void* ptr, int size){
+		debug_lib::log( "recv: waiting to recv on %s", mbname );
 		int mbid = locateMailBox(mbname);
 		if ( mbid < 0 ){
-			debug_lib::log( "cannot locate destination mailbox %s\n", mbname );
+			debug_lib::log( "recv: cannot locate destination mailbox %s", mbname );
 			return -1;
 		}
 		return recv(mbid, ptr, size );
@@ -323,7 +352,7 @@ namespace ipc_lib{
         int ShmIPC::recv_no_wait(const char* mbname, void* ptr, int size){
 		int mbid = locateMailBox(mbname);
 		if ( mbid < 0 ){
-			debug_lib::log( "cannot locate destination mailbox %s\n", mbname );
+			debug_lib::log( "recv_no_wait: cannot locate destination mailbox %s", mbname );
 			return -1;
 		}
 		return recv_no_wait(mbid, ptr, size );
@@ -352,16 +381,11 @@ namespace ipc_lib{
 
 
         int ShmIPC::recv_priv(int* mbIdQ, int mbid, void* ptr, int size){
-		AutoMutex(_record_mutex, mbid);
-		char* msgbuf = (char*)_msgQShm->getAddressForIndex(*mbIdQ);
 		int len;
-		memcpy(&len, msgbuf, sizeof(int) );
-		if ( ( len < 0 ) || ((unsigned int)len > (_msgQShm->getBlockSize() - sizeof(int))) )
-			debug_lib::throw_error( "msg recv size greater than %d", _msgQShm->getBlockSize() - sizeof(int) );
-		if( len > size )
-			debug_lib::throw_error( "msg recv len %d greater than buffer size %d", len, size );
-		memcpy( ptr, msgbuf+sizeof(int), len );
-
+		AutoMutex(_record_mutex, mbid);
+		_msgQShm->getData(*mbIdQ, ptr, size, len);
+		_msgQShm->freeMemory( *mbIdQ );
+		
 		//shift the queue so that the next message comes to the head of the queue
 		int* mbIdQPrev = NULL;
 		while ( *mbIdQ >= 0 ){
@@ -378,14 +402,17 @@ namespace ipc_lib{
 	}
 
 	void ShmIPC::dumpMemory(){
-		debug_lib::log( "dumping message queue" );
-		_msgQShm->dumpMemory();
+		debug_lib::log( "-----------------------------------------dumping message queue-----------------------------------" );
+		_msgQShm->dumpMemory(new DummyDumper());
+		debug_lib::log_no_newline( "\n" );
 
-		debug_lib::log( "dumping id data" );
-		_mailboxIdShm->dumpMemory();
+		debug_lib::log( "-----------------------------------------dumping id data-----------------------------------------" );
+		_mailboxIdShm->dumpMemory(new MailboxIdQDumper());
+		debug_lib::log_no_newline( "\n" );
 
-		debug_lib::log( "dumping mailbox queue" );
-		_mailboxQShm->dumpMemory();
+		debug_lib::log( "-----------------------------------------dumping mailbox queue-----------------------------------" );
+		_mailboxQShm->dumpMemory(new MailboxQDumper());
+		debug_lib::log_no_newline( "\n" );
 	}
 
 	ShmIPC::~ShmIPC(){
@@ -395,5 +422,130 @@ namespace ipc_lib{
 		delete _mailboxMetaData;
 		delete _record_mutex;
 		delete _global_mutex;
+	}
+
+
+	SharedMemoryVariableSize::SharedMemoryVariableSize(int blockSize, int maxMessageSize, int numMessages ){
+		int blockChainSize = (maxMessageSize / blockSize) + 1; //+1 for the terminating -1
+		int numBlocks = (maxMessageSize/blockSize) * numMessages;
+		_msgQShm = new SharedMemory("SVMQ", blockSize, numBlocks, new DataInitializer() );
+
+		//number of active messages at any time. It is a list of indexes that constitute a message
+		//For example if a certain message requires allocation of 3 x 1024 blocks then the block chain contains the list of 3 ids 
+		//into the msgQShm memory
+
+		_blockChainShm = new SharedMemory( "SVBC", blockChainSize, numMessages, new IntegerMinusOneInitializer() );
+		_msgSizeShm = new FixedIndexSharedMemory( "SVMS", sizeof(int), numMessages, new IntegerZeroInitializer() );
+		_blockChainSize = blockChainSize;
+		_numMessages = numMessages;
+		_maxMessageSize = maxMessageSize;
+		debug_lib::log( "shared memory variable created: block size = %d, num blocks = %d, max Message size = %d, num Messages = %d",
+				_msgQShm->getBlockSize(), _msgQShm->getNumBlocks(), _maxMessageSize, _numMessages );
+	}
+
+	void SharedMemoryVariableSize::dumpMemory(ShmDataDumper* applicationDumper){
+		debug_lib::log( "---------------------------------dumping message queue - messages------------------------" );
+		_msgQShm->dumpMemory(new DummyDumper());
+		debug_lib::log_no_newline( "\n" );
+
+		debug_lib::log( "---------------------------------dumping message queue - block chain---------------------" );
+		_blockChainShm->dumpMemory(new BlockChainDumper());
+		debug_lib::log_no_newline( "\n" );
+
+		debug_lib::log( "---------------------------------dumping message queue - msg size------------------------" );
+		_msgSizeShm->dumpMemory(new MsgSizeDumper());
+		debug_lib::log_no_newline( "\n" );
+	}
+
+	SharedMemoryVariableSize::~SharedMemoryVariableSize(){
+		delete _msgQShm;
+		delete _blockChainShm;
+		delete _msgSizeShm;
+	}
+
+	void SharedMemoryVariableSize::getData ( int id, void* data, int sizeOfData, int& lenCopied ){
+		int blockSize = _msgQShm->getBlockSize();
+		int* msgSizePtr = (int*)_msgSizeShm->getAddressForIndex(id);
+		int remainLen = *msgSizePtr;
+		int lenToCopy = 0;
+		lenCopied = *msgSizePtr;
+		int offset = 0;
+
+		int* blkChainPtr = (int*)_blockChainShm->getAddressForIndex(id);
+		while( *blkChainPtr != -1 ){
+			char* ptr = (char*)_msgQShm->getAddressForIndex( *blkChainPtr );
+			if ( remainLen >= blockSize )
+				lenToCopy = blockSize;
+			else
+				lenToCopy = remainLen;
+			memcpy( (((char*)data)+offset), ptr, lenToCopy );
+			remainLen -= lenToCopy;
+			offset += lenToCopy;
+			if ( remainLen < 0 )
+				debug_lib::throw_error( "getData: logic error : remaining length is below zero" );
+			blkChainPtr++;
+		}
+		if ( remainLen > 0 )
+			debug_lib::throw_error( "getData: logic error : entire data is not copied" );
+		debug_lib::log( "get Data - success, length copied = %d", lenCopied );
+	}
+
+	void SharedMemoryVariableSize::allocateAndCopy( void* data, int datalen, int& id ){
+		if ( (unsigned int)datalen > (unsigned int)getMaxMessageSize() )  
+			debug_lib::throw_error( "allocateAndCopy - data exceeds max message size[%d]", getMaxMessageSize() );
+		int numBlocks = (datalen / _msgQShm->getBlockSize()) + 1; //for example 100 bytes will require 1 block. 1025 bytes requires 2.
+		int* blkChainPtr = (int*)_blockChainShm->allocBlock(id); //return the id to the caller.
+		int blockIndex;
+		debug_lib::log( "allocate and Copy - copying %d len: ", datalen );
+		if ( numBlocks >= 1 ){
+			int blockSize = _msgQShm->getBlockSize();
+			int remainLen = datalen;
+			int lenToCopy;
+			int offset = 0;
+			int i;
+			for(i = 0; i < numBlocks; i++ ){
+				_msgQShm->allocBlock(blockIndex);
+
+				//link to block chain
+				*(blkChainPtr+i) = blockIndex;
+
+				//copy data
+				char* ptr = (char*) _msgQShm->getAddressForIndex(blockIndex);
+				if ( remainLen >= blockSize )
+					lenToCopy = blockSize;
+				else
+					lenToCopy = remainLen;
+				memcpy( ptr, (char*)data+offset, lenToCopy );
+				offset += lenToCopy;
+				remainLen -= lenToCopy;
+				debug_lib::log_no_newline( "%d:%d,", blockIndex, lenToCopy );
+			}
+			*(blkChainPtr+i) = -1;
+			debug_lib::log_no_newline("\n");
+			int* msgSizePtr = (int*)_msgSizeShm->getAddressForIndex(id);
+			*msgSizePtr = datalen;
+		}else{
+			debug_lib::throw_error( "allocateAndCopy - logic error. numBlocks is negative" );
+		}
+	}
+
+	void SharedMemoryVariableSize::freeMemory( int id ){
+		int* blkChainPtr = (int*)_blockChainShm->getAddressForIndex(id);
+		debug_lib::log_no_newline( "freeMemory indexes:" );
+		while( *blkChainPtr != -1 ){
+			_msgQShm->freeBlock( *blkChainPtr );
+			debug_lib::log_no_newline( "%d,", *blkChainPtr );
+			*blkChainPtr = -1;
+			blkChainPtr++;
+		}
+		debug_lib::log_no_newline("\n");
+		_blockChainShm->freeBlock(id);
+		int* msgSizePtr = (int*)_msgSizeShm->getAddressForIndex(id);
+		*msgSizePtr = 0;
+	}
+
+	void FixedIndexSharedMemory::dumpMemory(ShmDataDumper* applicationDumper){
+		applicationDumper->dump( _shmAddress, _numBlocks, _blockSize );
+		delete applicationDumper;
 	}
 }

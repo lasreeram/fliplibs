@@ -5,6 +5,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
+#include <debug.h>
 
 
 namespace ipc_lib{
@@ -73,7 +74,18 @@ namespace ipc_lib{
 			}
 	};
 
-	class MailBoxQInitializer : public ShmInitializer {
+	class IntegerZeroInitializer : public ShmInitializer {
+		public:
+			void initialize( void* shm, int numBlocks, int blockSize ){
+				int* ptr = (int*) shm;
+				for(unsigned int i = 0; i < ((numBlocks * blockSize)/sizeof(int)); i++ ){
+					ptr[i] = 0;
+				}
+			}
+	};
+
+
+	class IntegerMinusOneInitializer : public ShmInitializer {
 		public:
 			void initialize( void* shm, int numBlocks, int blockSize ){
 				int* ptr = (int*) shm;
@@ -98,18 +110,93 @@ namespace ipc_lib{
 	};
 
 
+	class ShmDataDumper{
+		public:
+			virtual void dump( void* shm, int numBlocks, int blockSize )=0;
+			virtual ~ShmDataDumper(){};
+	};
+
+	class DummyDumper : public ShmDataDumper {
+		public:
+			void dump( void* shm, int numBlocks, int blockSize ){
+				return; //do nothing
+			}
+	};
+
+	class MailboxIdQDumper : public ShmDataDumper {
+		public:
+			void dump( void* shm, int numBlocks, int blockSize ){
+				char* ptr = (char*) shm;
+				for( int i = 0; i < numBlocks; i++ ){
+					ptr = (char*)shm + (i*blockSize);
+					if( *ptr == '\0' )
+						break;
+					debug_lib::log( "mailbox %s has id %d", ptr, i );
+				}
+			}
+	};
+
+	class MsgSizeDumper : public ShmDataDumper {
+		public:
+			void dump( void* shm, int numBlocks, int blockSize ){
+				int* ptr;
+				for( int i = 0; i < numBlocks; i++ ){
+					ptr = (int*) ((char*)shm + (i*blockSize));
+					if( *ptr <= 0 )
+						continue;
+					debug_lib::log( "msgsize for msg(%d) = %d", i, *ptr );
+				}
+			}
+	};
+
+	class BlockChainDumper : public ShmDataDumper {
+		public:
+			void dump( void* shm, int numBlocks, int blockSize ){
+				int* ptr;
+				for( int i = 0; i < numBlocks; i++ ){
+					ptr = (int*) ((char*)shm + (i*blockSize));
+					if( *ptr == -1 )
+						continue;
+					debug_lib::log_no_newline( "block chain %d: ", i );
+					while( *ptr >= 0 ){
+						debug_lib::log_no_newline( "%d,", *ptr );
+						ptr += 1;
+					}
+					debug_lib::log_no_newline( "\n" );
+				}
+			}
+	};
+
+	class MailboxQDumper : public ShmDataDumper {
+		public:
+			void dump( void* shm, int numBlocks, int blockSize ){
+				int* ptr;
+				for( int i = 0; i < numBlocks; i++ ){
+					ptr = (int*) ((char*)shm + (i*blockSize));
+					bool once = false;
+					while( *ptr >= 0 ){
+						if( !once ){
+							debug_lib::log_no_newline( "\nmessage queue for mailbox %d = ", i );
+							once = true;
+						}
+						debug_lib::log_no_newline( "%d,", *ptr );
+						ptr += sizeof(int);
+					}
+				}
+				debug_lib::log_no_newline("\n");
+			}
+	};
+
 
 	//A system V shared memory implementation
 	class SharedMemory{
 		public:
 			SharedMemory(const char* key, int blocksize, int numBlocks, ShmInitializer* initObj);
-			~SharedMemory();
-			void attach();
-			void init();
-			void* allocBlock(int& index);
-			void freeBlock(void* b);
-			void freeBlock(int index);
-			void dumpMemory();
+			virtual ~SharedMemory();
+			virtual void* allocBlock(int& index);
+			virtual void freeBlock(void* b);
+			virtual void freeBlock(int index);
+			virtual void dumpMemory(ShmDataDumper* applicationDumper);
 			int getBlockSize(){ return _blockSize; }
 			int getNumBlocks(){ return _numBlocks; }
 			int getIndexForAddress(void* addr);
@@ -117,7 +204,7 @@ namespace ipc_lib{
 			bool isValidAddress(void* ptr);
 			int isEndOfMemory(void* ptr);
 
-		private:
+		protected:
 			int _semid;
 			std::string _key;
 			int _keyid;
@@ -129,8 +216,48 @@ namespace ipc_lib{
 			int* _indexTable;
 			bool checkIndexForAccess(int index);
 			bool checkIndex(int index);
+			int attach();
+			void init();
 	};
 
+	class FixedIndexSharedMemory : public SharedMemory{
+		public:
+			FixedIndexSharedMemory(const char* key, int blocksize, int numBlocks, ShmInitializer* initObj)
+				: SharedMemory( key, blocksize, numBlocks, initObj ) 
+			{
+			}
+			virtual void dumpMemory(ShmDataDumper* applicationDumper);
+			virtual void* allocBlock(int& index){
+				debug_lib::throw_error( "logic error: no implementation. should not be called" );
+				return NULL;
+			}
+			virtual void freeBlock(void* b){
+				debug_lib::throw_error( "logic error: no implementation. should not be called" );
+			}
+			virtual void freeBlock(int index){
+				debug_lib::throw_error( "logic error: no implementation. should not be called" );
+			}
+	};
+
+	class SharedMemoryVariableSize{
+		public:
+			SharedMemoryVariableSize(int blockSize, int maxMsgSize, int numMessages);
+			~SharedMemoryVariableSize();
+			void allocateAndCopy( void* data, int datalen, int& id );
+			void getData( int id, void* data, int size, int& lenCopied );
+			int getMaxMessageSize(){ return _maxMessageSize; }
+			int getMaxMessages(){ return _numMessages; }
+			void freeMemory( int id );
+			void dumpMemory(ShmDataDumper* applicationDumper);
+
+		private:
+			SharedMemory* _msgQShm;
+			SharedMemory* _msgSizeShm;
+			SharedMemory* _blockChainShm;
+			int _blockChainSize;
+			int _numMessages;
+			int _maxMessageSize;
+	};
 
 	//IPC Using system V shared memory. The buffers are in shm and the 
 	//index of the buffer to use is communicated via TCPIP
@@ -164,7 +291,7 @@ namespace ipc_lib{
 			~ShmIPC();
 			ShmIPC();
 		private:
-			SharedMemory* _msgQShm;
+			SharedMemoryVariableSize* _msgQShm;
 			SharedMemory* _mailboxQShm;
 			SharedMemory* _mailboxIdShm;
 			SharedMemory* _mailboxMetaData;

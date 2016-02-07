@@ -1,6 +1,6 @@
 CC=g++
-CFLAGS=-c -Wall -g -I../include
-LDFLAGS=-L/home/hduser/pdir/lib/ -lmycppsock
+CFLAGS=-c -Wall -g -I/home/hduser/sdir/socket_lib/include  -I/home/hduser/pdir/include
+LDFLAGS=-L/home/hduser/pdir/lib/ -lmycppsock -lmydebug
 INSTALLDIR=~/pdir/bin
 EXECUTABLE=server_tcp client_tcp \
 		server_udp client_udp \

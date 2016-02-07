@@ -6,31 +6,15 @@
 #include <string>
 #include <string.h>
 #include <exception>
+#include <debug.h>
 
-namespace error_lib{
+namespace debug_lib{
         static bool use_syslog = false;
         static bool debug_off = false;
 	static char* program_name;
 
-        class Exception : public std::exception {
-                public:
-                        Exception(const char* err) {
-                                _error = err;
-                        }
-                        //throw() here means that this function cannot not throw any exception
-                        const char* what() const throw() { return _error.c_str(); }
-                        //throw() here means that this function cannot not throw any exception
-                        //this is required since the std::exception is compiled with noexcept (or throw nothing clause)
-                        //In C++ 11 all functions are noexcept(true) by default. If you really want to throw exceptions
-                        //you must use throw(exception,..) indicate which types you are throwing.
-                        ~Exception() throw() {}
-
-                private:
-                        std::string _error;
-        };
-
 	void init(char* argv0){
-               ( error_lib::program_name = strrchr( argv0, '/' ) )? error_lib::program_name++: (error_lib::program_name = argv0);
+               ( debug_lib::program_name = strrchr( argv0, '/' ) )? debug_lib::program_name++: (debug_lib::program_name = argv0);
         }
 
         void logDebugInSyslog(){
@@ -91,7 +75,7 @@ namespace error_lib{
                 if ( use_syslog )
                         syslog(LOG_USER|LOG_INFO, "%s", buf );
                 else
-                        printf("%s: %s", program_name, buf );
+                        printf("%s", buf );
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
         }

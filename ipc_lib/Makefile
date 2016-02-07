@@ -1,4 +1,4 @@
-SUBDIRS = include lib 
+SUBDIRS = include lib src
 
 subdirs:
 	for dir in $(SUBDIRS); do \

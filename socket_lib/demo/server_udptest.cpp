@@ -50,7 +50,7 @@ int main(int argc, char** argv){
 		sock->setReuseAddressOption();
 		sock->bind(hname, sname);
 		service(sock);
-	}catch(sockets_lib::debug_lib::Exception& e){
+	}catch(debug_lib::Exception& e){
 		debug_lib::log( "exit due to error in server: %s", e.what());
 		exit(1);
 	}catch(...){
