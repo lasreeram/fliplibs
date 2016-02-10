@@ -1,10 +1,12 @@
 #ifndef __MY_IPC_LIB__
 #define __MY_IPC_LIB__
+#include <stdio.h>
 #include <string>
 #include <string.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
+#include <sys/msg.h>
 #include <debug.h>
 
 
@@ -297,6 +299,42 @@ namespace ipc_lib{
 			SharedMemory* _mailboxMetaData;
 			int recv_priv(int* mbIdQAddr, int mbid, void* ptr, int size);
 	};
+
+	#define MAX_SEND_SIZE 4056	
+
+	//use for send and recv
+	struct my_msgbuf{
+		long msgtype;
+		char mtext[MAX_SEND_SIZE];
+	};
+
+	//important ideas
+	// IPC key : A unique identifier to identify the entire System V queue (where queues based on user keys are created)
+	//           For each client-server pair, each direction a separate queue must be created
+
+	//MAXMSG size is 4056 for system v queues
+
+	//How does the kernal internally store the message
+	//As a singly linked list along with the size of the message
+	class SystemVIPC : public IPC{
+		public:
+			SystemVIPC( const char* basePath );
+			~SystemVIPC(){
+			}
+			int createMailBox(const char* name);
+			int locateMailBox(const char* name);
+			int send(const char* dest, void* ptr, int len);
+			int send(int dest_id, void* packet, int len);
+			int recv(const char* dest, void* ptr, int size);
+			//recv can also be used to peek into the message
+			int recv(int dest_id, void* ptr, int size);
+			void dumpMemory();
+
+		private:
+			int getKey(const char* name);
+			std::string _path;
+	};
+
 
 /*
 	class TCPSocketIPC : public IPC{

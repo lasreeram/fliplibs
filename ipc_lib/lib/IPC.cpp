@@ -548,4 +548,86 @@ namespace ipc_lib{
 		applicationDumper->dump( _shmAddress, _numBlocks, _blockSize );
 		delete applicationDumper;
 	}
+
+	//System V IPC Mechanism
+	SystemVIPC::SystemVIPC( const char* path ){
+		_path = path;
+	}
+
+	int SystemVIPC::createMailBox(const char* name){
+            int ret = locateMailBox (name );
+            if ( ret > 0 )
+                    return ret;
+            int key = getKey(name);
+            int queue_id = msgget( key, IPC_CREAT | 0666 );
+            if ( queue_id < 0 ) {
+                    debug_lib::throw_fatal_error( "createMailbox: cannot access/create queue:", name );
+            }
+            return queue_id;
+        }
+
+        int SystemVIPC::locateMailBox(const char* name){
+            int key = getKey(name);
+            int queue_id = msgget( key, 0 );
+            return queue_id;
+        }
+
+        int SystemVIPC::send(const char* dest, void* ptr, int len){
+            int qid = locateMailBox(dest);
+            return send( qid, ptr, len );
+        }
+
+        int SystemVIPC::send(int dest_id, void* packet, int len){
+            if ( (unsigned int)len > sizeof(my_msgbuf)-sizeof(long) )
+                    debug_lib::throw_error( "systemv send: logic error, arg 2 to recv is > than max msg size" );
+            int rc = msgsnd( dest_id, (struct msgbuf*)packet, len, 0 );
+	    debug_lib::log ( "sent to dest_id %d, msgtype = %d", dest_id, ((struct my_msgbuf*)packet)->msgtype );
+            if ( rc < 0 )
+                    debug_lib::throw_error( "systemv send: cannot send message\n" );
+            return rc;
+        }
+
+        int SystemVIPC::recv(const char* dest, void* ptr, int size){
+            int qid = locateMailBox(dest);
+            return recv( qid, ptr, size );
+        }
+
+
+        //recv can also be used to peek into the message
+        int SystemVIPC::recv(int dest_id, void* ptr, int size){
+            int flag = 0;
+	    my_msgbuf* packet = NULL;
+            packet = (my_msgbuf*) ptr;
+            if( size == 0 ) //to support peek functionality
+                    flag = MSG_NOERROR | IPC_NOWAIT;
+            if ( packet->msgtype <= 0 )
+                    debug_lib::throw_error( "systemv recv: logic error, packet.msgtype not a positive value" );
+
+	    int rc = 0;
+	    int readSize = 0;
+	    if( size != 0 )
+		readSize = size - sizeof(long);
+	    debug_lib::log ( "waiting for packet = %ld on recv, dest_id %d, readsize= %d", packet->msgtype, dest_id, readSize );
+            rc = msgrcv( dest_id, (struct msgbuf*)packet, readSize, packet->msgtype, flag );
+            if ( rc < 0 )
+                    debug_lib::throw_error( "systemv recv: cannot recv message\n" );
+            if ( ptr )
+                    memcpy( ptr, packet->mtext, rc );
+            return rc;
+        }
+
+        void SystemVIPC::dumpMemory(){
+            debug_lib::log( "use ipcs to view queue" );
+        }
+
+        int SystemVIPC::getKey(const char* name){
+            char buf[256] = {0};
+            sprintf( buf, "%s/%s", _path.c_str(), name );
+            int key = ftok( buf, 'a' );
+            if( key < 0 )
+                    debug_lib::throw_fatal_error( "getKey: cannot create queue for name %s", name );
+            return key;
+        }
+
+
 }
