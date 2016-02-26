@@ -94,5 +94,46 @@ namespace debug_lib{
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
         }
+
+	void lograw( const unsigned char* raw, int rawlen ){
+		int blocks = rawlen/16;
+		if ( (rawlen % 16) != 0 )
+			blocks += 1;
+		static char raw_hex_data[1024] = {0};
+		static char ascii_data[1024] = {0};
+		char* ptr1;
+		char* ptr2;
+		int remain_len;
+		int print_len;
+
+		for(int i = 0; i < blocks; i++ ){
+			memset ( raw_hex_data, 0x00, sizeof(raw_hex_data) );
+			memset ( ascii_data, 0x00, sizeof(ascii_data) );
+			ptr1 = raw_hex_data;
+			ptr2 = ascii_data;
+			remain_len = (rawlen - (16 * i));
+			if( remain_len > 16 )
+				print_len = 16;
+			else
+				print_len = remain_len;
+			int start = i*16;
+			for( int j = start; j < (start + print_len); j++ ){
+				if ( j == start )
+					ptr1 += sprintf( ptr1, "%04d: ", j );
+				
+				ptr1 += sprintf( ptr1, "%02x ", raw[j] );
+				if ( isprint( raw[j] ) )
+					ptr2 += sprintf( ptr2, "%c", raw[j] );
+				else
+					ptr2 += sprintf( ptr2, "." );
+			}
+                	if ( use_syslog )
+                        	syslog(LOG_USER|LOG_INFO, "%-54s | %-16s |\n", raw_hex_data, ascii_data);
+                	else
+				printf( "%-54s | %-16s |\n", raw_hex_data, ascii_data );
+		}
+		printf( "\n" );
+	}
+	
 }
 

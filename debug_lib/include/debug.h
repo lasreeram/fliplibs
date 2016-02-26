@@ -9,6 +9,7 @@ namespace debug_lib{
 	void throw_error( const char* format, ... );
 	void log( const char* format, ... );
 	void log_no_newline( const char* format, ... );
+	void lograw( const unsigned char* buf, int len );
 	class Exception : public std::exception {
 		public:
 			Exception(const char* err) {

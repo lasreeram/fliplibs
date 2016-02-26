@@ -1,4 +1,6 @@
 #include <Socket.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
 
 namespace sockets_lib{
 
@@ -761,6 +763,7 @@ namespace sockets_lib{
 	}
 
 	TCPSocket* TCPServerSocket::accept(){
+		_peerlen = sizeof(_peer);
 		SOCKET s1 = ::accept(_socket, (struct sockaddr*) &_peer, &_peerlen );
 		debug_lib::log ( "inside accept socket %d", getpid() );
 		TCPSocket* accept_socket = new TCPAcceptSocket(s1);
@@ -775,5 +778,159 @@ namespace sockets_lib{
 			debug_lib::throw_error(  "connect failed, errno %d, %s", errno, strerror(errno) );
 	}
 
+
+//SSL code
+	void ssl_msg_callback( int write_p, int version, int content_type, const void* buf, size_t len, SSL* ssl, void* arg){
+		debug_lib::log( "ssl_msg_callback: write_p = %d, version = %d, content_type = %d, size of msg = %d",
+					write_p, version, content_type, len );
+		debug_lib::lograw( (const unsigned char*) buf, len );
+	}
+
+	const char* SSLHelper::getSSLError(void)
+	{ 
+		BIO *bio = BIO_new (BIO_s_mem());
+		ERR_print_errors(bio);
+		char *buf = NULL;
+		BIO_get_mem_data (bio, &buf);
+		static char *ret = (char *) calloc (1,  1024);
+		if (ret && buf )
+			strcpy(ret, buf);
+		BIO_free (bio);
+		return ret;
+        }
+
+	void SSLHelper::initializeCtxt( bool isServer, std::string filePath, SSL_CTX** ssl_ctxt ){
+		std::string certFile = filePath + "/mycert.pem";
+		std::string privKeyFile = filePath + "/mykey.pem";
+		std::string caFilePath = filePath + "/cacerts/";
+		SSL_library_init(); //this is same as OpenSSL_add_all_algorithms which is a define of this function
+		SSL_load_error_strings();
+		if( isServer )
+		    *ssl_ctxt = SSL_CTX_new( TLSv1_2_server_method() );	
+		else
+		    *ssl_ctxt = SSL_CTX_new( TLSv1_2_client_method() );	
+
+		if( *ssl_ctxt == NULL ){
+			debug_lib::throw_fatal_error( "cannot created ssl context %s", getSSLError() );
+		}
+		if ( SSL_CTX_use_certificate_file(*ssl_ctxt, certFile.c_str(), SSL_FILETYPE_PEM ) <= 0 ){
+		    //error handling for ssl
+		    debug_lib::throw_error( "error in use certificate file" );
+		}
+		if ( SSL_CTX_use_PrivateKey_file(*ssl_ctxt, privKeyFile.c_str(), SSL_FILETYPE_PEM ) <= 0 ){
+		    //error handling for ssl
+		    debug_lib::throw_error( "error in use private key file" );
+		}
+
+		//In the caFilePath you should setup all certificates one in each file and use the c_rehash utility to
+		//generate the links
+		if ( SSL_CTX_load_verify_locations( *ssl_ctxt, NULL, caFilePath.c_str() ) <= 0 ){
+		    //error handling for ssl
+		    debug_lib::throw_error( "error loading verify locations" );
+		}
+		SSL_CTX_set_msg_callback( *ssl_ctxt, ssl_msg_callback );
+    	}
+
+
+	SSL_CTX* SSLClientSocket::_ssl_ctxt = NULL;
+	bool SSLClientSocket::_initialized = false;
+	SSLClientSocket::SSLClientSocket(TCPClientSocket* clSocket, const char* certPath){
+		debug_lib::log( "file descriptor = %d", clSocket->getFd() );
+	        initialize( clSocket->getFd(), certPath );
+        }
+
+	SSLClientSocket::SSLClientSocket(SOCKET socket, const char* certPath){
+	        initialize( socket, certPath );
+        }
+
+        int SSLClientSocket::write( const char* buf, int len ){
+	        int err = SSL_write( _ssl, buf, len );
+	        if ( err <= 0 ){
+		        debug_lib::throw_error( "write failed due to err = %d, detailed error= %s", 
+						err, SSLHelper::getSSLError() );
+	        }
+	        return err;
+        }
+
+        int SSLClientSocket::read( const char* buf, int size ){
+	        int err = SSL_read( _ssl, (void*)buf, size );
+	        if ( err < 0 ){
+		        debug_lib::throw_error( "read failed due to err = %d", err );
+	        }
+	        if ( err == 0 ){
+		        debug_lib::log( "peer has shutdown" );
+		        return 0;
+	        }
+		debug_lib::log( "read is done %s", SSLHelper::getSSLError() );
+	        return err;
+        }
+
+        void SSLClientSocket::shutdown(){
+	        int err = SSL_shutdown(_ssl);
+	        if ( err != 0 )
+		        debug_lib::throw_error( "error during ssl shutdown" );
+        }
+
+        void SSLClientSocket::initialize(SOCKET socket, const char* certPath){
+	        if ( !_initialized ){
+		        SSLHelper::initializeCtxt( false, certPath, &_ssl_ctxt );
+	        }
+	        _initialized = true;
+	        _ssl = SSL_new(_ssl_ctxt);
+	        SSL_set_fd(_ssl, socket);
+	        SSL_connect(_ssl);
+		debug_lib::log( "ssl client initialize complete" );
+        }
+
+
+	//SSL server
+	SSL_CTX* SSLServerSocket::_ssl_ctxt = NULL;
+	bool SSLServerSocket::_initialized = false;
+	SSLServerSocket::SSLServerSocket(TCPAcceptSocket* srvSocket, const char* certPath){
+	        initialize( srvSocket->getFd(), certPath );
+        }
+
+        SSLServerSocket::SSLServerSocket(SOCKET socket, const char* certPath){
+	        initialize( socket, certPath );
+        }
+
+        int SSLServerSocket::write( const char* buf, int len ){
+	        int err = SSL_write( _ssl, buf, len );
+	        if ( err <= 0 ){
+		        debug_lib::throw_error( "write failed due to err = %d, detailed error = %s", 
+					err, SSLHelper::getSSLError() );
+	        }
+		debug_lib::log( "write is done %s", SSLHelper::getSSLError() );
+	        return err;
+        }
+
+        int SSLServerSocket::read( const char* buf, int size ){
+	        int ret = SSL_read( _ssl, (void*)buf, size );
+	        if ( ret == 0 ){
+		        debug_lib::log( "peer has shutdown" );
+		        return 0;
+	        }else if ( ret < 0 ){
+		        debug_lib::throw_error( "read failed due to err = %d", ret );
+	        }
+	        return ret;
+        }
+
+        void SSLServerSocket::shutdown(){
+	        int err = SSL_shutdown(_ssl);
+	        if ( err != 0 )
+		        debug_lib::throw_error( "error during ssl shutdown" );
+		debug_lib::log( "ssl shutdown performed" );
+        }
+
+        void SSLServerSocket::initialize(SOCKET socket, const char* certPath){
+	        if( !_initialized ){
+		        SSLHelper::initializeCtxt( true, certPath, &_ssl_ctxt);
+	        }
+	        _initialized = true;
+	        _ssl = SSL_new(_ssl_ctxt);
+	        SSL_set_fd(_ssl, socket);
+	        SSL_accept(_ssl);
+		debug_lib::log( "ssl server initialize complete" );
+        }
 
 }

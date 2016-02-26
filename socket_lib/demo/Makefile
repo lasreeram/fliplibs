@@ -1,6 +1,6 @@
 CC=g++
 CFLAGS=-c -Wall -g -I/home/hduser/sdir/socket_lib/include  -I/home/hduser/pdir/include
-LDFLAGS=-L/home/hduser/pdir/lib/ -lmycppsock -lmydebug
+LDFLAGS=-L/home/hduser/pdir/lib/ -L/usr/lib/x86_64-linux-gnu/ -lmycppsock -lmydebug -lssl -lcrypto
 INSTALLDIR=~/pdir/bin
 EXECUTABLE=server_tcp client_tcp \
 		server_udp client_udp \
@@ -10,14 +10,14 @@ EXECUTABLE=server_tcp client_tcp \
 		server_tcp_nl client_tcp_nl \
 		tcpecho	shutdownc rlnumd udpecho1 \
 		udpclient udpecho2 mytcpmux mytcpmux_client mykeep xout1 \
-		mykeep2 xout2 xout3 extsys
+		mykeep2 xout2 xout3 extsys sslclient sslserver
 
 
 
 all: $(EXECUTABLE)
 
 server_tcp : server_tcp.o 
-	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@ 
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@  
 
 server_tcp.o : server_tcp.cpp 
 	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
@@ -172,7 +172,18 @@ extsys : extsys.o
 extsys.o : extsys.cpp
 	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
+sslclient : sslclient.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
+sslclient.o : sslclient.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
+sslserver : sslserver.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+sslserver.o : sslserver.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
 clean:
 	rm $(INSTALLDIR)/*.o
 

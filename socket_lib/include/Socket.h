@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <vector>
 #include <debug.h>
+#include <openssl/ssl.h>
 
 using namespace std;
 namespace sockets_lib {
@@ -263,6 +264,51 @@ namespace sockets_lib {
 			private:
 			SocketHelper _helper;
 			struct sockaddr_in _peer;
+	};
+
+
+	class SSLSocket{
+		public:
+			SSLSocket(){
+			}
+			virtual ~SSLSocket(){
+			}
+	};
+
+	class SSLHelper{
+		public:
+			static void initializeCtxt( bool isServer, std::string filePath, SSL_CTX** ssl_ctxt );
+			static const char* getSSLError();
+	};
+
+	class SSLClientSocket : public SSLSocket {
+		public:
+			SSLClientSocket(TCPClientSocket* clSocket, const char* certPath);
+			SSLClientSocket(SOCKET socket, const char* certPath);
+			int write( const char* buf, int len );
+			int read( const char* buf, int size );
+			void shutdown();
+
+		private:
+			void initialize(SOCKET socket, const char* certPath);
+			static SSL_CTX* _ssl_ctxt;
+			static bool _initialized;
+			SSL* _ssl;
+	};
+
+	class SSLServerSocket : public SSLSocket {
+		public:
+			SSLServerSocket(TCPAcceptSocket* srvSocket, const char* certPath);
+			SSLServerSocket(SOCKET socket, const char* certPath);
+			int write( const char* buf, int len );
+			int read( const char* buf, int size );
+			void shutdown();
+
+		private:
+			void initialize(SOCKET socket, const char* certPath);
+			static SSL_CTX* _ssl_ctxt;
+			static bool _initialized;
+			SSL* _ssl;
 	};
 
 }
