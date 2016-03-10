@@ -10,7 +10,7 @@ EXECUTABLE=server_tcp client_tcp \
 		server_tcp_nl client_tcp_nl \
 		tcpecho	shutdownc rlnumd udpecho1 \
 		udpclient udpecho2 mytcpmux mytcpmux_client mykeep xout1 \
-		mykeep2 xout2 xout3 extsys sslclient sslserver
+		mykeep2 xout2 xout3 extsys sslclient sslserver sslbioclient sslbioserver
 
 
 
@@ -182,6 +182,18 @@ sslserver : sslserver.o
 	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
 
 sslserver.o : sslserver.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
+sslbioclient : sslbioclient.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+sslbioclient.o : sslbioclient.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
+sslbioserver : sslbioserver.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+sslbioserver.o : sslbioserver.cpp
 	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
 	
 clean:

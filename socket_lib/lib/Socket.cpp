@@ -829,6 +829,7 @@ namespace sockets_lib{
 		    debug_lib::throw_error( "error loading verify locations" );
 		}
 		SSL_CTX_set_msg_callback( *ssl_ctxt, ssl_msg_callback );
+		debug_lib::log( "initialize context complete" );
     	}
 
 
@@ -933,4 +934,163 @@ namespace sockets_lib{
 		debug_lib::log( "ssl server initialize complete" );
         }
 
+	//SSL Bio implementation
+	SSL_CTX* SSLBioImpl::_ssl_ctxt = NULL;
+	bool SSLBioImpl::_initialized = false;
+	SSLBioImpl::SSLBioImpl(bool isServer, const char* certPath){
+	        initialize( isServer, certPath );
+        }
+
+	int SSLBioImpl::encodeSSL( const char* ibuf, int ilen, char* obuf, int osize ){
+		debug_lib::log ( "inside encode = %d", ilen );
+		sslWrite( ibuf, ilen );
+		int ret = bioRead( _output_bio, obuf, osize );
+		debug_lib::log( "encode ssl done" );
+		return ret;
+	}
+
+	int SSLBioImpl::decodeSSL( const char* ibuf, int ilen, char* obuf, int osize ){
+		debug_lib::log ( "inside decode = %d", ilen );
+		int ret = bioWrite( _input_bio, ibuf, ilen );
+		ret = sslRead( obuf, osize );	
+		debug_lib::log( "decode ssl done" );
+		return ret;
+	}
+
+        int SSLBioImpl::sslWrite( const char* buf, int len ){
+	        int err = SSL_write( _ssl, buf, len );
+	        if ( err < 0 ){
+		        debug_lib::throw_error( "ssl write failed due to err = %d, detailed error= %s", 
+						err, SSLHelper::getSSLError() );
+	        }else if ( err == 0 ){
+		        debug_lib::throw_error( "ssl write failed and detailed error= %s", 
+						err, SSLHelper::getSSLError() );
+		}
+		debug_lib::log ( "finished ssl write" );
+	        return err;
+        }
+
+        int SSLBioImpl::bioWrite( BIO* bio, const char* buf, int len ){
+		debug_lib::log ( "inside biowrite = %d", len );
+	        int err = BIO_write( bio, buf, len );
+	        if ( err < 0 ){
+		        debug_lib::throw_error( "bio write failed due to err = %d, detailed error= %s", 
+						err, SSLHelper::getSSLError() );
+	        }else if ( err == 0 ){
+		        debug_lib::throw_error( "bio write failed and detailed error= %s", 
+						err, SSLHelper::getSSLError() );
+		}
+	        return err;
+        }
+
+        int SSLBioImpl::sslRead( const char* buf, int size ){
+		debug_lib::log ( "inside sslread = %d", size );
+	        int err = SSL_read( _ssl, (void*)buf, size );
+	        if ( err < 0 ){
+		        debug_lib::throw_error( "ssl read failed due to err = %d, %s", err, SSLHelper::getSSLError() );
+	        }
+	        if ( err == 0 ){
+		        debug_lib::log( "peer has shutdown" );
+		        return 0;
+	        }
+		debug_lib::log( "read is done %s", SSLHelper::getSSLError() );
+	        return err;
+        }
+
+        int SSLBioImpl::bioRead( BIO* bio, const char* buf, int size ){
+		debug_lib::log ( "inside bioread= %d", size );
+	        int err = BIO_read( bio, (void*)buf, size );
+	        if ( err < 0 ){
+		        debug_lib::throw_error( "bio read failed due to err = %d", err );
+	        }
+	        if ( err == 0 ){
+		        debug_lib::log( "peer has shutdown" );
+		        return 0;
+	        }
+		debug_lib::log( "read is done %s", SSLHelper::getSSLError() );
+	        return err;
+        }
+
+        void SSLBioImpl::shutdown(){
+	        int err = SSL_shutdown(_ssl);
+	        if ( err != 0 )
+		        debug_lib::throw_error( "error during ssl shutdown" );
+        }
+
+	void SSLBioImpl::doHandshake( TCPSocket* socket, bool isServer ){
+		int len, pending;
+		char buf[16384] = {0};
+		while(!SSL_is_init_finished(_ssl)) {
+			if ( isServer ){
+				//wait for client hello. Client always sends the first msg in handshake
+				len = socket->recv_header( buf, sizeof(buf) );
+				if ( len > 0 ){
+					//write the client hello to the memory bio to be processed by openssl
+					len = bioWrite( _input_bio, buf, len );
+				}
+				//ssl handshake based on the current state of the handshake
+				SSL_do_handshake(_ssl);
+				
+				pending = BIO_ctrl_pending( _output_bio );
+				if ( pending > 0 ){
+					//read encrypted message put out by ssl_handshake in the output bio
+					len = bioRead( _output_bio, buf, sizeof(buf) );
+					if ( len > 0 ){
+						//send the encrypted message on the socket
+						socket->send_header( buf, len );
+					}
+				}
+			}else{ //client
+				//client initiates the handshake
+				SSL_do_handshake(_ssl);
+				//client recvs the final message of the handshake - the 'Server Finished'
+				if ( SSL_is_init_finished(_ssl)) 
+					continue;
+				pending = BIO_ctrl_pending( _output_bio );
+				if ( pending > 0 ){
+					//read encrypted message put out by ssl_handshake in the output bio
+					len = bioRead( _output_bio, buf, sizeof(buf) );
+					//send the encrypted message on the socket
+					if ( len > 0 ){
+						socket->send_header( buf, len );
+					}
+				}
+				//wait for response on the socket
+				len = socket->recv_header( buf, sizeof(buf) );
+				if ( len > 0 ){
+					//write encrypted message on to input bio
+					bioWrite( _input_bio, buf, len );
+				}
+			}
+		}
+		debug_lib::log( "ssl hand shake is done for %s", isServer? "server": "client" );
+	}
+
+        void SSLBioImpl::initialize(bool isServer, const char* certPath ){
+	        if ( !_initialized ){
+		        SSLHelper::initializeCtxt( isServer, certPath, &_ssl_ctxt );
+	        }
+	        _initialized = true;
+	        _ssl = SSL_new(_ssl_ctxt);
+		_input_bio = BIO_new(BIO_s_mem());
+		_output_bio = BIO_new(BIO_s_mem());
+		SSL_set_bio( _ssl, _input_bio, _output_bio );
+		if( isServer ){
+			SSL_set_accept_state(_ssl);
+		}
+		else{
+			SSL_set_connect_state(_ssl);
+		}
+		debug_lib::log( "ssl bio initialize complete" );
+        }
+
+	SSLBioImpl::~SSLBioImpl(){
+		//ERR_remove_state(0);
+		//ENGINE_cleanup();
+		//CONF_modules_unload(1);
+		//ERR_free_strings();
+		//EVP_cleanup();
+		//sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
+		//CRYPTO_cleanup_all_ex_data();
+	}
 }

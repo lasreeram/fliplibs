@@ -7,6 +7,7 @@
 #include <string.h>
 #include <exception>
 #include <debug.h>
+#include <sys/time.h>
 
 namespace debug_lib{
         static bool use_syslog = false;
@@ -25,6 +26,20 @@ namespace debug_lib{
                 use_syslog = false;
         }
 
+	char* getCurrentTime(){
+		static char time_buf[256] = {0};
+		struct tm* timeinfo;
+		//use micro second	
+		struct timeval curTime;
+		gettimeofday( &curTime, NULL );
+		timeinfo = localtime( &curTime.tv_sec );
+		sprintf( time_buf, "%04d:%02d:%02d %02d:%02d:%02d.%06ld", 
+				1900+timeinfo->tm_year, 1+timeinfo->tm_mon, timeinfo->tm_mday,
+				timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec,
+				curTime.tv_usec );
+		return time_buf;
+	}
+
         void throw_fatal_error( const char* format, ... ){
                 char buf[2048] = {0};
                 va_list ap;
@@ -34,10 +49,10 @@ namespace debug_lib{
                         syslog(LOG_USER|LOG_CRIT, "%s", buf );
                 }else{
                         if ( errno )
-                                printf("%s: error type = %d, errno = %d(%s), error = %s\n",
-                                                program_name, LOG_CRIT, errno, strerror(errno), buf );
+                                printf("%s %s: error type = %d, errno = %d(%s), error = %s\n",
+                                                program_name, getCurrentTime(), LOG_CRIT, errno, strerror(errno), buf );
                         else
-                                printf("%s: error type = %d, error = %s\n", program_name, LOG_CRIT, buf );
+                                printf("%s %s: error type = %d, error = %s\n", program_name, getCurrentTime(), LOG_CRIT, buf );
                 }
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
@@ -54,10 +69,10 @@ namespace debug_lib{
                         syslog(LOG_USER|LOG_ERR, "%s", buf );
                 }else{
                         if ( errno )
-                                printf("%s: error type = %d, errno = %d(%s), error = %s\n",
-                                                        program_name, LOG_ERR, errno, strerror(errno), buf );
+                                printf("%s %s: error type = %d, errno = %d(%s), error = %s\n",
+                                                        program_name, getCurrentTime(), LOG_ERR, errno, strerror(errno), buf );
                         else
-                                printf("%s: error type = %d, error = %s\n", program_name, LOG_ERR, buf );
+                                printf("%s %s: error type = %d, error = %s\n", program_name, getCurrentTime(), LOG_ERR, buf );
                 }
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
@@ -90,7 +105,7 @@ namespace debug_lib{
                 if ( use_syslog )
                         syslog(LOG_USER|LOG_INFO, "%s", buf );
                 else
-                        printf("%s: %s\n", program_name, buf );
+                        printf("%s %s: %s\n", program_name, getCurrentTime(), buf );
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
         }

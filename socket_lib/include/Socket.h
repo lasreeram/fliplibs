@@ -311,5 +311,29 @@ namespace sockets_lib {
 			SSL* _ssl;
 	};
 
+	//Bio implementation
+	class SSLBioImpl {
+		public:
+			SSLBioImpl (bool isServer, const char* certPath);
+			void doHandshake( TCPSocket* socket, bool isServer );
+			int encodeSSL( const char* ibuf, int ilen, char* obuf, int osize );
+			int decodeSSL( const char* ibuf, int ilen, char* obuf, int osize );
+			void shutdown();
+			~SSLBioImpl();
+
+		private:
+			int sslWrite( const char* buf, int len );
+			int bioWrite( BIO* bio, const char* buf, int len );
+			int sslRead( const char* buf, int size );
+			int bioRead( BIO* bio, const char* buf, int size );
+			void initialize(bool isServer, const char* certPath);
+			static SSL_CTX* _ssl_ctxt;
+			static bool _initialized;
+			SSL* _ssl;
+			BIO* _input_bio;
+			BIO* _output_bio;
+	};
+
+
 }
 #endif
