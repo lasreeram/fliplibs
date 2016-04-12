@@ -125,8 +125,8 @@ class SocketReadHandler : public IOPollMultiTimerHandler {
 	}
 
 	void handle ( IOPollMultiTimerManager* mgr ){
-		//the recv_no_header function throws an exception on a fatal error and returns 0 for EOF.
-		rc = _socket->recv_no_header( recvbuf+offset,  ACK_MESSAGE_SIZE - offset );
+		//the recv function throws an exception on a fatal error and returns 0 for EOF.
+		rc = _socket->recv( recvbuf+offset,  ACK_MESSAGE_SIZE - offset );
 		//rc < 0 readLine throws exception
 		if ( rc == 0 )
 			debug_lib::throw_error( "server disconnected" );

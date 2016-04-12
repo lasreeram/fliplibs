@@ -10,7 +10,10 @@ EXECUTABLE=server_tcp client_tcp \
 		server_tcp_nl client_tcp_nl \
 		tcpecho	shutdownc rlnumd udpecho1 \
 		udpclient udpecho2 mytcpmux mytcpmux_client mykeep xout1 \
-		mykeep2 xout2 xout3 extsys sslclient sslserver sslbioclient sslbioserver
+		mykeep2 xout2 xout3 extsys sslclient sslserver sslbioclient sslbioserver \
+		server_tcpnw client_tcpnw \
+		server_tcpstnw client_tcpstnw \
+		server_tcpvarnw client_tcpvarnw
 
 
 
@@ -195,6 +198,43 @@ sslbioserver : sslbioserver.o
 
 sslbioserver.o : sslbioserver.cpp
 	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+
+server_tcpnw : server_tcpnw.o 
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@  
+
+server_tcpnw.o : server_tcpnw.cpp 
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+
+client_tcpnw : client_tcpnw.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+client_tcpnw.o : client_tcpnw.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
+server_tcpstnw : server_tcpstnw.o 
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@  
+
+server_tcpstnw.o : server_tcpstnw.cpp 
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+
+client_tcpstnw : client_tcpstnw.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+client_tcpstnw.o : client_tcpstnw.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
+server_tcpvarnw : server_tcpvarnw.o 
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@  
+
+server_tcpvarnw.o : server_tcpvarnw.cpp 
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+
+client_tcpvarnw : client_tcpvarnw.o
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@
+
+client_tcpvarnw.o : client_tcpvarnw.cpp
+	$(CC) $(CFLAGS) $< -o $(INSTALLDIR)/$@
+	
 	
 clean:
 	rm $(INSTALLDIR)/*.o

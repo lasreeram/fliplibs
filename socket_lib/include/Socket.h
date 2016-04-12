@@ -19,6 +19,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <vector>
+#include <queue>
 #include <debug.h>
 #include <openssl/ssl.h>
 
@@ -212,15 +213,15 @@ namespace sockets_lib {
 			TCPSocket();
 			TCPSocket(SOCKET s);
 			void setSocketOption(int option_value, int on = 0 );
-			int recv_no_header( void* buf, size_t size);
-			int recv_header( void* buf, size_t len );
-			int recvn(void* buf, int nbytes);
-			int readLine(char* bufptr, int len);
-			int writeLine( const char* buf, int size_of_buf);
-			int send_no_header( const void* buf, size_t len );
-			int send_header( const void* buf, size_t len );
-			void shutdown(int type);
-			void close();
+			virtual int recv( void* buf, size_t size);
+			virtual int recv_header( void* buf, size_t len );
+			virtual int recvn(void* buf, int nbytes);
+			virtual int readLine(char* bufptr, int len);
+			virtual int writeLine( const char* buf, int size_of_buf);
+			virtual int send_no_header( const void* buf, size_t len );
+			virtual int send_header( const void* buf, size_t len );
+			virtual void shutdown(int type);
+			virtual void close();
 			virtual bool isServer()=0;
 			virtual bool isClient()=0;
 			int getFd();
@@ -228,8 +229,6 @@ namespace sockets_lib {
 
 		protected:
 			SOCKET _socket;
-
-
 
 	};
 
@@ -257,15 +256,120 @@ namespace sockets_lib {
 
 	class TCPClientSocket : public TCPSocket {
 			public:
-			virtual bool isServer(){ return false; }
-			virtual bool isClient(){ return true; }
-			void connect(const char* hname, const char* sname);
+			bool isServer(){ return false; }
+			bool isClient(){ return true; }
+			virtual void connect(const char* hname, const char* sname);
 
 			private:
 			SocketHelper _helper;
 			struct sockaddr_in _peer;
 	};
 
+	class MessageFramer{
+		public:
+		MessageFramer(){};
+		virtual ~MessageFramer(){};
+		//returns true if found end of message else false
+		virtual void frame( const char* buf, size_t len, unsigned int& len_to_copy, 
+			unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage ) = 0;
+		virtual bool form( const char* buf, size_t len, char* obuf, size_t& olen )=0;
+	};
+
+	class NewLineFramer : public MessageFramer {
+		public:
+		NewLineFramer(){};
+		void frame( const char* buf, size_t len, unsigned int& len_to_copy, 
+				unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage );
+		bool form( const char* buf, size_t len, char* obuf, size_t& olen );
+	};
+
+	class FixedLenFramer : public MessageFramer {
+		public:
+		FixedLenFramer(int len){_running_len = 0; _len = len;}
+		void frame( const char* buf, size_t len, unsigned int& len_to_copy, 
+				unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage );
+		bool form( const char* buf, size_t len, char* obuf, size_t& olen );
+		private:
+		int _len;
+		int _running_len;
+	};
+
+	class Byte2HeaderFramer : public MessageFramer{
+		public:
+		Byte2HeaderFramer(){reset();}
+		void frame( const char* buf, size_t len, unsigned int& len_to_copy, 
+				unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage );
+		bool form( const char* buf, size_t len, char* obuf, size_t& olen );
+
+		private:
+		int _len;
+		int _running_len;
+		int _header_len;
+		char _header[3];
+
+		void reset(){
+			_len = 0; 
+			_header_len = 0; 
+			_running_len = 0;
+			memset( _header, 0x00, sizeof(_header) ); 
+		}
+	};
+
+	class Message{
+			public:
+			Message(){ _ready = false; _framer = NULL; }
+			Message(MessageFramer* framer){ _ready = false; _framer = framer; }
+			Message(const Message& copythis){
+				debug_lib::log( "Message copy constructor called" );
+				this->_ready = copythis._ready;
+				this->_raw = copythis._raw;
+				this->_framer = copythis._framer;
+				this->_msg = copythis._msg;
+			}
+			void setFramer(MessageFramer* framer){ _framer = framer; }
+			~Message(){}
+			unsigned int putData(const char* buf, size_t len, int& ret_len_parsed);
+			unsigned int putDataRaw(const char* buf, size_t len);
+			int moveToBuffer( char* buf, size_t size );
+			bool isReady();
+			void reset(); 
+			void setReady(bool ready=true);
+			bool isRaw();
+			unsigned int size();
+
+			private:
+			vector<unsigned char> _msg;
+			bool _ready;
+			bool _raw;
+			MessageFramer* _framer;
+	};
+
+	class TCPSocketNoWait {
+			public:
+			TCPSocketNoWait(SOCKET s, MessageFramer* framer);
+			virtual ~TCPSocketNoWait();
+			int recv( Message& msg );
+			int send( Message& msg );
+			
+			private:
+			queue<Message> _recv_q;
+			queue<Message> _send_q;
+			Message* _current_recv_msg;
+			Message* _current_send_msg;
+			SOCKET _socket;
+	};
+
+	//socket should already be accepted before creating an object of this type
+	class TCPAcceptSocketNoWait : public TCPSocketNoWait {
+			public:
+			TCPAcceptSocketNoWait(SOCKET s, MessageFramer* framer) : TCPSocketNoWait(s, framer) {};
+	};
+
+	//socket should already be connected before creating an object of this type
+	class TCPClientSocketNoWait : public TCPSocketNoWait {
+			public:
+			TCPClientSocketNoWait(SOCKET s, MessageFramer* framer) : TCPSocketNoWait(s, framer) {}
+	};
 
 	class SSLSocket{
 		public:

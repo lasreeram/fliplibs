@@ -1,6 +1,8 @@
 #include <Socket.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 namespace sockets_lib{
 
@@ -547,14 +549,14 @@ namespace sockets_lib{
 		return;
 	}
 
-	int TCPSocket::recv_no_header( void* buf, size_t size){
+	int TCPSocket::recv( void* buf, size_t size){
 		int flags = 0;
 		int rc = 0;
 		while( true ){
 			if ( ( rc = ::recv( _socket, buf, size, flags )) < 0 ){
 				if ( errno == EINTR )	
 					continue;
-				debug_lib::throw_error(  "recvn failed, error %d,%s", 
+				debug_lib::throw_error(  "recv failed, error %d,%s", 
 						errno, strerror(errno) );
 			}
 			break;
@@ -1024,18 +1026,23 @@ namespace sockets_lib{
 			if ( isServer ){
 				//wait for client hello. Client always sends the first msg in handshake
 				len = socket->recv_header( buf, sizeof(buf) );
+				debug_lib::log( "recv on socket %d", len );
 				if ( len > 0 ){
+					debug_lib::log( "bio write" );
 					//write the client hello to the memory bio to be processed by openssl
 					len = bioWrite( _input_bio, buf, len );
 				}
 				//ssl handshake based on the current state of the handshake
 				SSL_do_handshake(_ssl);
+				debug_lib::log( "do ssl handshake" );
 				
 				pending = BIO_ctrl_pending( _output_bio );
 				if ( pending > 0 ){
+					debug_lib::log( "bio read pending" );
 					//read encrypted message put out by ssl_handshake in the output bio
 					len = bioRead( _output_bio, buf, sizeof(buf) );
 					if ( len > 0 ){
+						debug_lib::log( "send len = %d on socket", len );
 						//send the encrypted message on the socket
 						socket->send_header( buf, len );
 					}
@@ -1043,21 +1050,29 @@ namespace sockets_lib{
 			}else{ //client
 				//client initiates the handshake
 				SSL_do_handshake(_ssl);
-				//client recvs the final message of the handshake - the 'Server Finished'
-				if ( SSL_is_init_finished(_ssl)) 
+				debug_lib::log( "do handshake" );
+				//client recvs the final message of the handshake - the 'Server Finished'. So this check is required
+				if ( SSL_is_init_finished(_ssl)) {
+					debug_lib::log( "done handshake" );
 					continue;
+				}
 				pending = BIO_ctrl_pending( _output_bio );
 				if ( pending > 0 ){
+					debug_lib::log( "pending bio read" );
 					//read encrypted message put out by ssl_handshake in the output bio
 					len = bioRead( _output_bio, buf, sizeof(buf) );
 					//send the encrypted message on the socket
 					if ( len > 0 ){
+						debug_lib::log( "send on socket" );
 						socket->send_header( buf, len );
 					}
 				}
+
 				//wait for response on the socket
 				len = socket->recv_header( buf, sizeof(buf) );
+				debug_lib::log( "recv on socket, len = %d", len );
 				if ( len > 0 ){
+					debug_lib::log( "do bio write" );
 					//write encrypted message on to input bio
 					bioWrite( _input_bio, buf, len );
 				}
@@ -1093,4 +1108,284 @@ namespace sockets_lib{
 		//sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
 		//CRYPTO_cleanup_all_ex_data();
 	}
+
+
+	//non blocking sockets
+	TCPSocketNoWait::TCPSocketNoWait(SOCKET s, MessageFramer* framer) {
+		fcntl(s, F_SETFL, O_NONBLOCK);  // set to non-blocking
+		_current_recv_msg = new Message(framer);
+		_current_send_msg = new Message(framer);
+		_current_recv_msg->reset();
+		_current_send_msg->reset();
+		_socket = s;
+	}
+
+	TCPSocketNoWait::~TCPSocketNoWait(){
+		if ( _current_send_msg ) delete _current_send_msg;
+		if ( _current_recv_msg ) delete _current_recv_msg;
+	}
+
+	//returns -1 for disconnect
+	//returns 0 for no data
+	//returns n for data
+	int TCPSocketNoWait::recv( Message& msg ){
+		//this needs to be cleaned up. What is the limit of the buffer size.
+		static char recvbuf[32768];
+		int recvbufsize = sizeof(recvbuf);
+		memset( recvbuf, 0x00, recvbufsize );
+		int flags = 0;
+		int rc = 0;
+		while( true ){ //while loop is only to check for EINTR
+			if ( ( rc = ::recv( _socket, recvbuf, recvbufsize, flags )) < 0 ){
+				if ( errno == EAGAIN || errno == EWOULDBLOCK ){
+					break;
+				}
+				if ( errno == EINTR )	
+					continue;
+				debug_lib::throw_error(  "recvn failed, error %d,%s", 
+						errno, strerror(errno) );
+			}else
+				break;
+		}
+		debug_lib::log( "nowait recv: return code of rc = %d", rc );
+
+		if( rc == 0 ){
+			debug_lib::log( "nowait recv: socket disconnected" );	
+			return -1;
+		}
+
+		if ( rc > 0 ){
+			int len_used; //Need to fix this
+			_current_recv_msg->putData( recvbuf, rc, len_used );
+			debug_lib::log( "received rc %d bytes, len used %d", rc, len_used );
+			while( _current_recv_msg->isReady() ){
+				_recv_q.push(*_current_recv_msg);
+				if ( len_used < rc ){
+					_current_recv_msg->reset();
+					rc = _current_recv_msg->putData( recvbuf+len_used, rc-len_used, len_used);
+				}else
+					break;
+			}
+		}
+
+		rc = 0;
+		if( !_recv_q.empty() ){
+			msg = _recv_q.front();
+			rc = msg.size();
+			_recv_q.pop();
+		}
+		return rc;
+	}
+
+	int TCPSocketNoWait::send( Message& msg ){
+		static char sendbuf[32768];
+		int sendbufsize = sizeof(sendbuf);
+		int rc = -1;
+		int flags = 0;
+		int len;
+		if ( !msg.isReady() ){
+			debug_lib::throw_error( "no wait send: message not ready to be sent" );
+		}
+		debug_lib::log( "sending message msg.raw %d, msg.size %d", msg.isRaw(), msg.size() );
+
+		_send_q.push(msg);
+		bool canSendMore = true;
+		Message& qmsg = _send_q.front();
+		while(canSendMore){
+			len = qmsg.moveToBuffer( sendbuf, sendbufsize );	
+			debug_lib::log( "message is raw %d, len is %d", qmsg.isRaw(), len );
+			if ( (rc = ::send(_socket, sendbuf, len, flags)) < 0 ){
+				if ( errno == EAGAIN || errno == EWOULDBLOCK ){
+					canSendMore = false;
+					continue;
+				}else
+					debug_lib::throw_error(  "no wait send returned error %d", errno );
+			}
+			debug_lib::log( "message sent, len %d, return %d", len, rc );
+			debug_lib::log( "pop message" );
+			_send_q.pop();
+			if( _send_q.empty() )
+				canSendMore = false;
+			else
+				qmsg = _send_q.front();
+		}
+		return 0;
+	}
+
+	//Message
+         unsigned int Message::putDataRaw(const char* buf, size_t len){
+		static char obuf[16384] = {0};
+		size_t olen = sizeof(obuf)-1;
+		
+		size_t copylen;
+		const char* startaddr;
+		if( _framer->form( buf, len, (char*) obuf, olen ) ){
+			startaddr = obuf;
+			copylen = olen;
+		}
+		else{
+			startaddr = buf;
+			copylen = len;
+		}
+
+		for( unsigned int i = 0; i < copylen; i++ ){
+			_msg.push_back( *(startaddr+i) );
+		}
+                _raw = true;
+                _ready = true;
+		return len;
+  	 }
+
+         unsigned int Message::putData(const char* buf, size_t len, int& ret_len_parsed){
+                 if ( _ready ){
+                         debug_lib::throw_error( "logic error, cannot add any more data" );
+                 }
+                 unsigned int len_to_copy = 0;
+                 unsigned int offset_to_use = 0;
+                 unsigned int len_parsed = 0;
+                 bool endOfMessage = false;
+                 _framer->frame( buf, len, len_to_copy, offset_to_use, len_parsed, endOfMessage);
+		 debug_lib::log( "framer passed len %d , returned len_to_copy %d, offset_to_use %d, len_parsed %d, endOfMessage %d",
+					len, len_to_copy, offset_to_use, len_parsed, endOfMessage );
+                 if( len_to_copy > 0 ){
+                         const char* startaddr = buf + offset_to_use;
+                         for( unsigned int i = 0; i < len_to_copy; i++ ){
+                                 _msg.push_back( *(startaddr+i) );
+                         }
+                 }
+                 if( endOfMessage )
+                         setReady();
+                 ret_len_parsed = len_parsed;
+                 return len_parsed;
+         }
+
+         int Message::moveToBuffer( char* buf, size_t size ){
+                 unsigned int rc = _msg.size();
+                 if( rc > size )
+                         debug_lib::throw_error( "logic error: size of buffer less than message size" );
+                 for(unsigned int i = 0; i < _msg.size(); i++ ){
+                         buf[i] = _msg[i];
+                 }
+                 //to be fixed! std::copy( buf, _msg.begin(), _msg.end() );
+                 return rc;
+         }
+
+         bool Message::isReady(){ return _ready; }
+         bool Message::isRaw(){ return _raw; }
+         unsigned int Message::size(){ return _msg.size(); }
+
+         void Message::reset(){
+                 _ready = false;
+                 _raw = false;
+                 _msg.clear();
+         }
+         void Message::setReady(bool ready){ _ready = ready; }
+
+
+	//message framers
+	void NewLineFramer::frame( const char* buf, size_t len, unsigned int& len_to_copy, 
+			unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage ){
+		unsigned int i;
+		offset_to_use = 0;
+		for( i = 0; i < len; i++ ){
+			if( buf[i] == '\n' ){
+				debug_lib::log( "NewLineFramer encountered new line" );
+				len_to_copy = i;
+				len_parsed = i+1;
+				endOfMessage = true;
+				return;
+			}
+		}
+		len_to_copy = len;
+		len_parsed = len;
+		endOfMessage = false;
+		return;
+	}
+	
+	bool NewLineFramer::form( const char* buf, size_t len, char* obuf, size_t& olen ){
+		return false;
+	}
+
+	bool FixedLenFramer::form( const char* buf, size_t len, char* obuf, size_t& olen ){
+		return false;
+	}
+
+        void FixedLenFramer::frame( const char* buf, size_t len, unsigned int& len_to_copy,
+                        unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage ){
+                offset_to_use = 0;
+                unsigned int i;
+                for( i = 0; i < len; i++ ){
+                        _running_len++;
+                        if( _running_len == _len ){
+                                _running_len = 0;
+                                len_to_copy = i+1;
+                                len_parsed = i+1;
+                                endOfMessage = true;
+                                return;
+                        }
+                }
+                len_to_copy = len;
+                len_parsed = len;
+                endOfMessage = false;
+                return;
+        }
+
+
+	bool Byte2HeaderFramer::form( const char* buf, size_t len, char* obuf, size_t& olen ){
+		if( olen < len + 2 )
+			debug_lib::throw_error( "Byte2HeaderFramer::form: logic error: length in buffer not sufficient" ); 
+		memset( obuf, 0x00, olen );
+		char* ptr = obuf;
+		ptr += sprintf( obuf, "%02ld", len );
+		memcpy( ptr, buf, len );
+		olen = len + 2;
+		return true;
+	}
+
+        void Byte2HeaderFramer::frame( const char* buf, size_t len, unsigned int& len_to_copy,
+                        unsigned int& offset_to_use, unsigned int& len_parsed, bool& endOfMessage ){
+                unsigned int i;
+                offset_to_use = 0;
+                if( _header_len < 2 ){
+                        for( i = 0; i < 2; i++ ){
+                                _header[_header_len] = buf[i];
+                                _header_len++;
+                                offset_to_use++;
+                                if( _header_len == 2 ){
+                                        _header_len = 2;
+                                        _header[2] = '\0';
+                                        _len = atoi(_header);
+					debug_lib::log( "header found %s", _header );
+                                        _running_len = 0;
+					i = i+1;
+                                        break;
+                                }
+                        }
+                }
+
+                if ( _len == 0 ){
+                        len_to_copy = 0;
+                        len_parsed = i+1;
+                        endOfMessage = false;
+                        return;
+                }
+
+                for( ; i < len; i++ ){
+                        _running_len++;
+                        if( _running_len == _len ){
+                                len_to_copy = _len;
+                                len_parsed = i+1;
+                                endOfMessage = true;
+                                return;
+                        }
+                }
+
+                len_to_copy = len;      
+                len_parsed = len;       
+                endOfMessage = false;   
+                return; 
+        } 
+
+
+
 }
