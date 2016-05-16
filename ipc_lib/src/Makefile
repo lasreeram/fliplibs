@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -Wall -g -I../include -I/home/hduser/pdir/include
+CFLAGS=-v -c -Wall -g -I../include -I/home/hduser/pdir/include
 LDFLAGS=-L/home/hduser/pdir/lib/ -lmyipc -lmydebug
 INSTALLDIR=~/pdir/bin
 EXECUTABLE=agent dumpshm recvagent sendagent createmb sendbig_agent sysv_createmb sysv_recvagent sysv_sendagent

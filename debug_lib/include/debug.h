@@ -1,8 +1,10 @@
 #ifndef _DEBUG_LIB_H_
 #define _DEBUG_LIB_H_
+#include <string>
 
 namespace debug_lib{
-	void init(char* argv0);
+	void init(char* argv0, bool isMultiThreaded = false);
+	void init(pthread_t tid, const char* threadname);
 	void logDebugInSyslog();
 	void logDebugInStdOut();
 	void throw_fatal_error( const char* format, ... );

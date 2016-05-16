@@ -8,15 +8,92 @@
 #include <exception>
 #include <debug.h>
 #include <sys/time.h>
+#include <map>
+#include <pthread.h>
 
 namespace debug_lib{
         static bool use_syslog = false;
         static bool debug_off = false;
+	static bool multiThreaded = false;
+	static bool _initialized = false;
 	static char* program_name;
+	static pthread_mutex_t gMutex;
+	struct compareThreads{
+			bool operator()( const pthread_t& lhs, const pthread_t& rhs ) const{
+				//int ret = pthread_equal( lhs, rhs );
+				//bool flag = ret;
+				//printf( "****inside compare function**** return value %s, ret = %d\n", flag? "true":"false", ret );
+				bool flag = memcmp( &lhs, &rhs, sizeof(pthread_t) );
+				return flag;
+			}
+	};
+	static std::map<pthread_t, std::string> gThreadNames;
 
-	void init(char* argv0){
-               ( debug_lib::program_name = strrchr( argv0, '/' ) )? debug_lib::program_name++: (debug_lib::program_name = argv0);
+	static int lockMutex(){
+		if ( !multiThreaded )
+			return 0;
+		int ret = pthread_mutex_lock(&gMutex);
+		if ( ret != 0 ){
+                        syslog(LOG_USER|LOG_CRIT, "error %d locking mutex", ret );
+			exit(-1);
+		}
+		return 0;
+	}
+
+	static int unlockMutex(){
+		if ( !multiThreaded )
+			return 0;
+		int ret = pthread_mutex_unlock(&gMutex);
+		if ( ret != 0 ){
+                        syslog(LOG_USER|LOG_CRIT, "error %d un-locking mutex", ret );
+			exit(-1);
+		}
+		return 0;
+	}
+
+	void init(pthread_t id, const char* threadname ){
+		multiThreaded = true;
+		lockMutex();
+		if ( !_initialized ){
+			int ret = pthread_mutex_init( &gMutex, NULL);
+			if ( ret != 0 )
+				syslog(LOG_USER|LOG_CRIT, "error %d initializing mutex", ret );
+			_initialized = true;
+		}
+		std::string thread_name = threadname;
+		//printf( "setting name in map %ld, %s\n", id, thread_name.c_str() );
+		gThreadNames.insert(make_pair(id, thread_name));
+		unlockMutex();
+	}
+
+	void init(char* argv0, bool isMultiThreaded){
+		multiThreaded = isMultiThreaded;
+		_initialized = false;
+		if( multiThreaded ){
+			init( pthread_self(), argv0 );
+		}else{
+               		( debug_lib::program_name = strrchr( argv0, '/' ) )? debug_lib::program_name++: (debug_lib::program_name = argv0);
+		}
         }
+
+	static const char* getThreadName(){
+		if( !multiThreaded )
+			return program_name;
+
+		static char thread_name[64] = {0};
+		pthread_t tid = pthread_self();
+		std::map<pthread_t, std::string>::iterator it = gThreadNames.find( tid );
+		//printf( "getting name in map %ld\n", tid);
+		if ( it != gThreadNames.end() ){
+			memset( thread_name, 0x00, sizeof(thread_name) );
+			unsigned int len = strlen( it->second.c_str() );
+			if ( len >= sizeof(thread_name) )
+				len = sizeof(thread_name) - 1;
+			strncpy( thread_name, it->second.c_str(), len );
+			printf( "got name %s from map for thread %ld\n", it->second.c_str(), tid);
+		}
+		return thread_name;
+	}
 
         void logDebugInSyslog(){
                 use_syslog = true;
@@ -45,15 +122,17 @@ namespace debug_lib{
                 va_list ap;
                 va_start(ap, format);
                 vsprintf(buf, format, ap);
+		lockMutex();
                 if ( use_syslog ){
                         syslog(LOG_USER|LOG_CRIT, "%s", buf );
                 }else{
                         if ( errno )
                                 printf("%s %s: error type = %d, errno = %d(%s), error = %s\n",
-                                                program_name, getCurrentTime(), LOG_CRIT, errno, strerror(errno), buf );
+                                                getThreadName(), getCurrentTime(), LOG_CRIT, errno, strerror(errno), buf );
                         else
-                                printf("%s %s: error type = %d, error = %s\n", program_name, getCurrentTime(), LOG_CRIT, buf );
+                                printf("%s %s: error type = %d, error = %s\n", getThreadName(), getCurrentTime(), LOG_CRIT, buf );
                 }
+		unlockMutex();
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
                 Exception ex(buf);
@@ -65,15 +144,17 @@ namespace debug_lib{
                 va_list ap;
                 va_start(ap, format);
                 vsprintf(buf, format, ap);
+		lockMutex();
                 if ( use_syslog ){
                         syslog(LOG_USER|LOG_ERR, "%s", buf );
                 }else{
                         if ( errno )
                                 printf("%s %s: error type = %d, errno = %d(%s), error = %s\n",
-                                                        program_name, getCurrentTime(), LOG_ERR, errno, strerror(errno), buf );
+                                                        getThreadName(), getCurrentTime(), LOG_ERR, errno, strerror(errno), buf );
                         else
-                                printf("%s %s: error type = %d, error = %s\n", program_name, getCurrentTime(), LOG_ERR, buf );
+                                printf("%s %s: error type = %d, error = %s\n", getThreadName(), getCurrentTime(), LOG_ERR, buf );
                 }
+		unlockMutex();
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
                 Exception ex(buf);
@@ -87,10 +168,12 @@ namespace debug_lib{
                 va_list ap;
                 va_start(ap, format);
                 vsprintf(buf, format, ap);
+		lockMutex();
                 if ( use_syslog )
                         syslog(LOG_USER|LOG_INFO, "%s", buf );
                 else
                         printf("%s", buf );
+		unlockMutex();
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
         }
@@ -102,10 +185,12 @@ namespace debug_lib{
                 va_list ap;
                 va_start(ap, format);
                 vsprintf(buf, format, ap);
+		lockMutex();
                 if ( use_syslog )
                         syslog(LOG_USER|LOG_INFO, "%s", buf );
                 else
-                        printf("%s %s: %s\n", program_name, getCurrentTime(), buf );
+                        printf("%s %s: %s\n", getThreadName(), getCurrentTime(), buf );
+		unlockMutex();
                 //vsyslog(LOG_USER|err, format, ap );
                 va_end(ap);
         }
@@ -142,10 +227,12 @@ namespace debug_lib{
 				else
 					ptr2 += sprintf( ptr2, "." );
 			}
+			lockMutex();
                 	if ( use_syslog )
                         	syslog(LOG_USER|LOG_INFO, "%-54s | %-16s |\n", raw_hex_data, ascii_data);
                 	else
 				printf( "%-54s | %-16s |\n", raw_hex_data, ascii_data );
+			unlockMutex();
 		}
 		printf( "\n" );
 	}
