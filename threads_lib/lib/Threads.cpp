@@ -96,6 +96,16 @@ namespace pthreads_lib{
 		_name = name;
 	}
 
+	void Thread::exit(void* retval){
+		pthread_exit(retval);
+	}
+
+	int Thread::cancel(pthread_t tid){
+		int ret = pthread_cancel(tid);
+		if ( ret != 0 )
+			debug_lib::throw_error( "thread cancellation failed" );
+	}
+
 	Thread::~Thread(){
 	}
 

@@ -21,8 +21,8 @@ int main(int argc, char** argv){
 	Thread* worker2 = new Thread(dowork, NULL, NULL);
 	worker2->setName("worker2");
 
-	mainThread->join(worker1->getMyId(), NULL);
-	mainThread->join(worker2->getMyId(), NULL);
+	mainThread->join(worker1->getMyId());
+	mainThread->join(worker2->getMyId());
 
 
 	delete worker1;

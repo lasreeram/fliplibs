@@ -90,7 +90,7 @@ namespace debug_lib{
 			if ( len >= sizeof(thread_name) )
 				len = sizeof(thread_name) - 1;
 			strncpy( thread_name, it->second.c_str(), len );
-			printf( "got name %s from map for thread %ld\n", it->second.c_str(), tid);
+			//printf( "got name %s from map for thread %ld\n", it->second.c_str(), tid);
 		}
 		return thread_name;
 	}

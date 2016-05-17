@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 	debug_lib::log(	"main thread name = %s, worker1 thread name = %s", 
 				mainThread->getName().c_str(), worker1->getName().c_str() );
 
-	mainThread->join(worker1->getMyId(), NULL);
+	mainThread->join(worker1->getMyId());
 	delete worker1;
 	delete mainThread;
 
