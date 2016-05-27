@@ -7,17 +7,18 @@ using namespace pthreads_lib;
 class Worker : public ThreadFunctor {
 	public:
 		int run(){
-			debug_lib::log( "worker 1 executed successfully" );
+			for(;;){
+				debug_lib::log( "doing work" );
+				sleep(2);
+			}
 			return 0;
 		}
-
 };
 
 int main(int argc, char** argv){
 	debug_lib::init( (char*)"IamMain", true );
 	Worker* worker = new Worker();
 	Thread* workerThread1 = new Thread(worker);
-	debug_lib::log( "calling setname on worker 1" );
 	workerThread1->setName("worker1");
 
 	Thread* mainThread = new Thread(pthread_self());
@@ -28,11 +29,14 @@ int main(int argc, char** argv){
 	debug_lib::log(	"main thread name = %s, worker1 thread name = %s", 
 				mainThread->getName().c_str(), workerThread1->getName().c_str() );
 
+	sleep(20);
+	debug_lib::log("cancelling thread");
+	Thread::cancel(workerThread1->getMyId());
 	mainThread->join(workerThread1->getMyId());
+
 	delete workerThread1;
 	delete worker;
 	delete mainThread;
-	debug_lib::log ( "workers are done" );
 
 	return 0;
 }

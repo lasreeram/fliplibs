@@ -3,31 +3,39 @@
 #include <unistd.h>
 #include <iostream>
 
-void* dowork(void* ctxt){
-	debug_lib::log( "executed successfully" );
-	return NULL;
-}
-
 using namespace pthreads_lib;
-int main(int argc, char** argv){
-	debug_lib::init(argv[0], true);
+class Worker : public ThreadFunctor {
+	public:
+		int run(){
+			debug_lib::log( "executed successfully" );
+			for(int i = 0; i < 20; i++){
+				debug_lib::log( "doing work" );
+				sleep(2);
+			}
+		}
+};
 
-	Thread* worker1 = new Thread(dowork, NULL, NULL);
-	worker1->setName("worker1");
+int main(int argc, char** argv){
+	debug_lib::init((char*)"IamMain", true);
+
+	Worker* worker = new Worker();
+	Thread* workerThread1 = new Thread(worker);
+	workerThread1->setName("worker1");
 
 	Thread* mainThread = new Thread(pthread_self());
 	mainThread->setName("iAmMain");
 
-	Thread* worker2 = new Thread(dowork, NULL, NULL);
-	worker2->setName("worker2");
+	Thread* workerThread2 = new Thread(worker);
+	workerThread2->setName("worker2");
 
-	mainThread->join(worker1->getMyId());
-	mainThread->join(worker2->getMyId());
+	mainThread->join(workerThread1->getMyId());
+	mainThread->join(workerThread2->getMyId());
 
 
-	delete worker1;
-	delete worker2;
+	delete workerThread1;
+	delete workerThread2;
 	delete mainThread;
+	debug_lib::log( "workers are done" );
 
 	return 0;
 }

@@ -36,14 +36,19 @@ namespace pthreads_lib{
 
 
 	//Threads
-	Thread::Thread(thread_function functor, pthread_attr_t* attr, void* arg){
-		int ret = pthread_create( &_thread_id, attr, functor, arg);
+	void* dispatchToThread( void* arg ){
+		ThreadFunctor* functor = (ThreadFunctor*) arg;
+		functor->run();
+	}
+
+	Thread::Thread(ThreadFunctor* functor, pthread_attr_t* attr){
+		int ret = pthread_create( &_thread_id, attr, dispatchToThread, functor);
 		if ( ret != 0 )
 			debug_lib::throw_fatal_error( "cannot create thread %d", ret );
 	}
 
-	Thread::Thread(thread_function functor, void* arg){
-		int ret = pthread_create( &_thread_id, NULL, functor, arg);
+	Thread::Thread(ThreadFunctor* functor){
+		int ret = pthread_create( &_thread_id, NULL, dispatchToThread, functor);
 		if ( ret != 0 )
 			debug_lib::throw_fatal_error( "cannot create thread %d", ret );
 

@@ -7,11 +7,17 @@
 namespace pthreads_lib{
 
 	typedef void *(*thread_function) (void*);
+	class ThreadFunctor{
+		public:
+			virtual int run() = 0;
+			virtual ~ThreadFunctor(){};
+	};
+
 	class Thread{
 		public:
 			static int cancel( pthread_t thread_id);
-			Thread( thread_function, pthread_attr_t* attributes, void* arg );
-			Thread( thread_function, void* arg );
+			Thread( ThreadFunctor* fun, pthread_attr_t* attributes );
+			Thread( ThreadFunctor* fun );
 			Thread( pthread_t thread_id );
 			virtual ~Thread();
 			int join( pthread_t thread_id, void** retval = NULL );
