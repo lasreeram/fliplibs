@@ -16,5 +16,5 @@ db.<collection name>.update ( json object containing only the id, json object co
 C++ Driver
 got C++ driver (legacy brach) from Github cloned to ~/mongo_cxx_driver_src.
 git clone -b legacy https://github.com/mongodb/mongo-cxx-driver.git
-used scons --prefix=/home/hduser/mongo_cxx_driver_src/install --ssl install
+used scons --prefix=/home/hduser/pdir --ssl install
 
