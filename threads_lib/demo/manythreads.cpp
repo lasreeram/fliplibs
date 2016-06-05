@@ -7,7 +7,7 @@
 #include <stdio.h>
 using namespace pthreads_lib;
 pthreads_lib::Mutex* gMutex = NULL;
-int balance = 100;
+int balance = 1;
 int gIndex = 0;
 
 class WithdrawWorker : public ThreadFunctor {
@@ -17,7 +17,8 @@ class WithdrawWorker : public ThreadFunctor {
 			for(int i = 0; i < 5; i++){
 				debug_lib::log( "doing work" );
 				//gMutex->lock();
-				balance--;
+				if( balance > 0 )
+					balance--;
 				//gMutex->unlock();
 				sleep(2);
 			}
