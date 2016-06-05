@@ -4,16 +4,22 @@ INCLD = -I/home/hduser/pdir/include -I/home/hduser/mongo_cxx_driver_src/install/
 LDFLAGS=-L/home/hduser/pdir/lib/ -L/usr/lib/x86_64-linux-gnu/lib/ 
 LDLIBS=-lmydebug -pthread -lboost_thread -lboost_system -lboost_regex -lssl -lcrypto -lmongoclient
 INSTALLDIR=~/pdir/bin
-EXECUTABLE= mongotest
+EXECUTABLE= mongoinsert mongoread
 
 
 
 all: $(EXECUTABLE)
 
-mongotest : mongotest.o 
+mongoinsert : mongoinsert.o 
 	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@  $(LDLIBS)
 
-mongotest.o : mongotest.cpp 
+mongoinsert.o : mongoinsert.cpp 
+	$(CC) $(CFLAGS) $(INCLD) $< -o $(INSTALLDIR)/$@
+
+mongoread : mongoread.o 
+	$(CC) $(LDFLAGS) $(INSTALLDIR)/$< -o $(INSTALLDIR)/$@  $(LDLIBS)
+
+mongoread.o : mongoread.cpp 
 	$(CC) $(CFLAGS) $(INCLD) $< -o $(INSTALLDIR)/$@
 
 clean:

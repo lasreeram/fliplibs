@@ -6,14 +6,6 @@
 
 using namespace mongo;
 void run(mongo::DBClientConnection& c) {
-	std::auto_ptr<DBClientCursor> cursor = c.query("hackdb.transactions", BSONObj());
-	while (cursor->more())
-		std::cout << cursor->next().toString() << std::endl;
-}
-
-int main() {
-	mongo::client::initialize();
-	mongo::DBClientConnection c;
 	c.connect("localhost");
 	srand( time(NULL) );
 	int tranid = rand() % 1000000;
@@ -25,14 +17,17 @@ int main() {
 				).append("merchant_id",merchid
 				).append("terminal_id", termid
 				).append("amount", amt).obj();
-	debug_lib::log( "inserting json object %s", p.toString().c_str() );
-	
 	c.insert( "hackdb.transactions", p );
+	debug_lib::log( "record inserted %s", p.toString().c_str() );
+}
+
+int main(int argc, char** argv) {
+	debug_lib::init(argv[0]);
+	mongo::client::initialize();
+	mongo::DBClientConnection c;
 	try {
 		run(c);
-		std::cout << "connected ok" << std::endl;
 	} catch( const mongo::DBException &e ) {
-		std::cout << "caught " << e.what() << std::endl;
 	}
 	//mongo::client::shutdown();
 	return EXIT_SUCCESS;
