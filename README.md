@@ -8,3 +8,5 @@ debug_lib - An error handling library. Support for multi-threaded applications i
 sockets_lib - A socket library for TCP and UDP sockets with classes for select/poll, SSL sockets 
 ipc_lib - An IPC mechanism using system V shared memory
 threads_lib - A library for POSIX threads
+ec_crypto - A C++ lib for elliptic curve cryptography using open ssl
+mongo_db - Some demo programs for mongo db
