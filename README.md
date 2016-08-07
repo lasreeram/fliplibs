@@ -14,6 +14,8 @@ threads_lib - A library for POSIX threads
 Demo Programs
 
 ec_crypto - A set of demo programs on using elliptic curve cryptography with openssl
+(some sample google tests for ec_crypto class)
 
-mongo_db - Some demo programs for mongo db
+mongo_db - Some demo programs for mongo db 
+
 
