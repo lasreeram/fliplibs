@@ -41,3 +41,27 @@ In EC cryptography, the private key is an integer that may or may not be prime. 
 
 Q7. What is a generator (or a primitive point) in EC cryptography?
 A primitive point P is simply a generator of this group (of integer points): all elements of the group can be expressed as P+P+...+P (k times) for some k. 
+
+
+Q8. How do I generate a public key certificate in pem format to be used in an SSL program?
+using the below command
+hduser@aardra-Lenovo-B590:~/sdir/ec_crypto$ openssl req -new -x509 -key ec-priv.pem -out cert.pem -days 730
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:IN
+State or Province Name (full name) [Some-State]:TN
+Locality Name (eg, city) []:CHENNAI
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:SREE
+Organizational Unit Name (eg, section) []:SREE
+Common Name (e.g. server FQDN or YOUR name) []:sreeram
+Email Address []:lasreeram@gmail.com
+
+
+Q9. How can I examine the certificate?
+using the following command:
+openssl x509 -in server.pem -text -noout

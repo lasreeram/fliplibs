@@ -1,10 +1,13 @@
 #include <elliptic_curve.h>
 #include <debug.h>
+#include <string.h>
 
 namespace ec_crypto{
 EllipticCurveKeyPair::EllipticCurveKeyPair(const unsigned char priv_bytes[32]){
 	_priv_key = (unsigned char*) malloc(32);
+	memset( _priv_key, 0, 32 );
 	_key = deriveKeyPairFromPrivateKey( priv_bytes );
+	_initialized = true;
 }
 
 
@@ -13,8 +16,12 @@ EllipticCurveKeyPair::~EllipticCurveKeyPair(){
 	free(_priv_key);
 }
 
-unsigned char* EllipticCurveKeyPair::getPrivateKeyFromKeyPair(){
-	return _priv_key;
+EC_KEY* EllipticCurveKeyPair::getKeyPair(){
+	return _key;
+}
+
+bool EllipticCurveKeyPair::isInitialized(){
+	return _initialized;
 }
 
 EC_KEY* EllipticCurveKeyPair::deriveKeyPairFromPrivateKey(const unsigned char* priv_bytes){

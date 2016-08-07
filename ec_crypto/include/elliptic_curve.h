@@ -9,8 +9,9 @@ namespace ec_crypto{
 class EllipticCurveKeyPair{
 	public:
 		EllipticCurveKeyPair( const unsigned char priv_byte[32] );
+		bool isInitialized();
 		~EllipticCurveKeyPair();
-		unsigned char* getPrivateKeyFromKeyPair();
+		EC_KEY* getKeyPair();
 		
 
 	private:
@@ -18,6 +19,7 @@ class EllipticCurveKeyPair{
 
 		EC_KEY* _key;
 		unsigned char* _priv_key;
+		bool _initialized;
 };
 }
 

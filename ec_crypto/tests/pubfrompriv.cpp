@@ -13,9 +13,9 @@ int main( int argc, char** argv){
 	};
 
 	EllipticCurveKeyPair* ecKey = new EllipticCurveKeyPair( priv_bytes );
-	EC_KEY* priv = ecKey->getKeyPair();
+	unsigned char* priv = ecKey->getPrivateKeyFromKeyPair();
 
-	//debug_lib::log( "private key pair" );
-	//debug_lib::lograw( priv, 32 );
+	debug_lib::log( "private key pair" );
+	debug_lib::lograw( priv, 32 );
 
 }

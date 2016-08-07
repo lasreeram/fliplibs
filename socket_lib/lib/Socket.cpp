@@ -817,11 +817,11 @@ namespace sockets_lib{
 		}
 		if ( SSL_CTX_use_certificate_file(*ssl_ctxt, certFile.c_str(), SSL_FILETYPE_PEM ) <= 0 ){
 		    //error handling for ssl
-		    debug_lib::throw_error( "error in use certificate file" );
+		    debug_lib::throw_error( "error in use certificate file %s", certFile.c_str() );
 		}
 		if ( SSL_CTX_use_PrivateKey_file(*ssl_ctxt, privKeyFile.c_str(), SSL_FILETYPE_PEM ) <= 0 ){
 		    //error handling for ssl
-		    debug_lib::throw_error( "error in use private key file" );
+		    debug_lib::throw_error( "error in use private key file %s", privKeyFile.c_str() );
 		}
 
 		//In the caFilePath you should setup all certificates one in each file and use the c_rehash utility to
