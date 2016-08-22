@@ -12,4 +12,3 @@ libmyfunlib_la_SOURCES = lib/funlib.cpp
 bin_PROGRAMS = hello
 hello_SOURCES = src/hello.cpp
 hello_LDADD = $(lib_LTLIBRARIES) 
-
