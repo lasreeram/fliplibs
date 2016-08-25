@@ -1,4 +1,4 @@
-AC_INIT([socket_lib],[Aug23],[lasreeram@gmail.com])
+AC_INIT([threads_lib],[Aug24],[lasreeram@gmail.com])
 AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror])
 AC_CONFIG_MACRO_DIR([m4])
 

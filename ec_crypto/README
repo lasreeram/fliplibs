@@ -1,0 +1,7 @@
+To build:
+	- run autogen.sh
+	- run ./configure
+	- make
+	- make install
+
+in the configure step you can provide --prefix to install it to a non-default location

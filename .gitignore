@@ -9,8 +9,6 @@ config.guess
 missing
 install-sh
 depcomp
-INSTALL
-COPYING
 autom4te.cache
 configure
 Makefile.in
