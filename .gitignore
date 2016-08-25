@@ -1,3 +1,16 @@
 *.[oa]
 *~
 build/
+ltmain.sh
+ar-lib
+compile
+config.sub
+config.guess
+missing
+install-sh
+depcomp
+INSTALL
+COPYING
+autom4te.cache
+configure
+Makefile.in
