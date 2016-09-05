@@ -12,3 +12,4 @@ depcomp
 autom4te.cache
 configure
 Makefile.in
+test-driver
