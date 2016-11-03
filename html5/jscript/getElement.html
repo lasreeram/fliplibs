@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Get Element</title>
+		<meta charset="utf8">
+	</head>
+	<body>
+		<h1>Get Element javascript</h1>
+		<p id="weather">today is a sunny day</p>
+	</body>
+
+	<script>
+		function changeWeather(){
+			var weather = document.getElementById("weather");
+			weather.innerHTML = "today is a windy day";
+		}
+		window.onload = changeWeather;
+	</script>
+</html>
+

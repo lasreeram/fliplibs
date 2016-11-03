@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+div {
+    border: 1px solid yellow;
+    margin-top: 100px;
+    margin-bottom: 100px;
+    margin-right: 100px;
+    margin-left: 100px;
+    background-color: lightblue;
+}
+
+p.one{
+    border-style: solid;
+    border-color: red;
+    border-width: 1px; 
+    margin-top: 100px;
+    margin-bottom: inherit;
+    margin-right: inherit;
+    margin-left: inherit;
+    padding-right: 50px;
+    padding-bottom: 50px;
+    padding-top: 100px;
+    padding-left: 50px;
+    height: 400px;
+    max-width: 800px;
+    background-color:white;
+}
+
+p.two{
+    border-style: solid;
+    border-color: red;
+    border-width: 1px; 
+    margin-top: 100px;
+    margin-bottom: inherit;
+    margin-right: inherit;
+    margin-left: inherit;
+    padding-right: 50px;
+    padding-bottom: 50px;
+    padding-top: 100px;
+    padding-left: 50px;
+    height: 400px;
+    width: 800px;
+    background-color:white;
+}
+
+</style>
+</head>
+<body>
+
+<h2>What is the box model?</h2>
+
+
+<div>
+<p class = "one"> 
+The box model is used when talking about CSS desgin. Each element can be thought of as boxes. The different parts of the box are
+
+<br>
+    Content - The content of the box, where text and images appear <br>
+    Padding - Clears an area around the content. The padding is transparent <br>
+    Border - A border that goes around the padding and content<br>
+    Margin - Clears an area outside the border. The margin is transparent<br>
+
+
+</p>
+<p class = "two" > 
+What is the size of an element in the box model? <br>
+
+Total element width = Width of the element + left padding + right padding + left border + right border + left margin + right margin <br>
+
+
+Total element height = Height of the element + top padding + bottom padding + top border + bottom border + top margin + bottom margin <br>
+</p>
+</div>
+
+</body>
+</html>
+

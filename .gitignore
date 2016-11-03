@@ -1,5 +1,7 @@
 *.[oa]
 *~
+m4/
+*.m4
 build/
 ltmain.sh
 ar-lib

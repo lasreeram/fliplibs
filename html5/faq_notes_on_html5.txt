@@ -1,0 +1,69 @@
+Q. What is HTML5?
+HTML5 is a combination of three technologies - HTML Markup + Java script + CSS3
+
+Q. What are the features of HTML5?
+- HTML5 is about multi-media. Getting rid of the need for plug-ins and using native support for audio and video.
+- Building rich web interfaces using canvas(?), transforms(?) and javascript. HTML5 has a <canvas> tag that is used to draw graphics. The <canvas> element does not by itself have drawing capabilities, you must use javascript to actually draw graphics.
+- HTML5 has client side storage and caching facility - For offline access to web.
+- New CSS features (CSS3)
+- Support for Mobile web interfaces
+- No more need to support cookies - use browser local storage instead
+
+Q. What are the APIs in java script?
+Sockets, Canvas, Offline Caching, Web workers (threading - running multiple scripts), Video, Local Storage, Audio, Forms, Drag & Drop, Geo Location, Cryptography and many more. (Refer to w3 org for all the java script APIs)
+
+
+Q. What is webkit?
+Webkit is an open source web browser engine from kde that is used by Chrome, Safari, Opera. (not used by firefox, IE)
+
+
+Q. What is the difference between border, margin and padding?
+element = <p>, <div> are elements in CSS
+borders = encloses an element
+margin = space around (outside) the element from border outwards. 
+padding = space around (inside) the element from text to border.
+
+Refer the html (What is box model? in the css section)
+
+Q. Is javascript object oriented?
+Yes. javascript uses prototypes instead of classes for inhertence. It is possible to simulate many class based features using prototypes in javascript.
+
+var foo = {name: "foo", one: 1, two: 2};
+var bar = {two: "two", three: 3};
+
+Object.setPrototypeOf(bar, foo);
+bar.one // Resolves to 1.
+bar.three // Resolves to 3.
+// Own properties shadow prototype properties
+bar.two; // Resolves to "two"
+bar.name; // unaffected, resolves to "foo"
+foo.name; // Resolves to "foo"
+
+
+Q. In javascript what is the difference between undefined and null?
+Undefined and null are two different values. Undefined means a variable hasn't been assigned a value; null means a variable has no value.
+
+Q. In javascript, html what is the difference between property and attribute?
+	- Attributes are defined by HTML. Properties are defined by DOM (that javascript uses).
+	- Some HTML attributes have 1:1 mapping onto properties. id is one example of such.
+	- Some do not (e.g. the value attribute specifies the initial value of an input, but the value property specifies the current value).
+
+
+Q. In javascript how do you differentiate local and global variables?
+variables declared with "var" are local and without "var" are global.
+
+Q. Are functions first-class objects in java script?
+Yes, functions can be passed around as data in java script
+
+Q. What are some of the import global objects available to js?
+window - The window object
+document - The document object
+
+Q. What are the different geo-location methods?
+IP Address based - Browsers use a map of IP address to location, can some times resolve only to the ISPs location.
+GPS based - uses satelites to locate, only on smart phones, hard on batteries, require the sky to be clear/visible
+Cell phone triangulation - using distance from one or more cell phone towers, more the towers better the accuracy
+wifi positioning - wifi access points to triangulate your loctaion, for example in a coffee house
+
+
+

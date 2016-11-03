@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>my tunes</title>
+	<meta charset="utf-8">
+	<script src="playlist_store.js"></script>
+	<style>
+	ul {
+    		border: 1px solid black;
+    		background-color: #f1f1f1;
+    		list-style-type: none;
+    		padding: 10px 20px;
+	}
+	</style>
+</head>
+<body>
+	<form>
+		<input type="text" id="songTextInput" size="40" placeholder="Song name" >
+		<input type="button" id="addButton" value="Add Song" >
+		<input type="button" id="clearButton" value="Clear Song" >
+	</form>
+	<ul id="playlist">
+	</ul>
+</body>
+</html>

@@ -1,0 +1,80 @@
+Q. What according to opendsa is a 3-step procedure in selecting a Data structure?
+	-  Analyze your problem to determine the basic operations that must be supported. Examples of basic operations include inserting a data item into the data structure, deleting a data item from the data structure, and finding a specified data item
+	- Quantify the resource constraints for each operation.
+	- Select the data structure that best meets these requirements.
+
+Q. What is an ADT and What is a 'data structure'? How are they related?
+An Abstract Data Type - An ADT defines a type and the set of operations on the type. The operations are defined by their input/output.
+A data structure - Is an implementation of the ADT.
+
+In C++ ADT - is an abstract class while the implementation of the abstract class is the 'data structure'.
+
+Different applications might need the same ADT but different implementations of the same operation, that is why the separation.
+ADT is the logical concept while data structure is a physical concept
+
+Q. What are the mathematical prelinimaries
+Exponentials and Algorithms:
+- Logrithams base 2
+- Logrithams base e or natural logrithams
+- n! is same as O(ln n) - Stirling's approximation
+
+
+Q. What is big-Oh Or Asymptotic notation?
+Big-Oh or asymptotic notation is defined as 
+
+O(f(n)) - Given g(n) is the algorithm's running time, there exists a function f(n) such that g(n) <= c.f(n) for all n >= n0. In effect f(n) is the upper bound for the algorithm for n >= n0
+
+
+Q. Useful short-cuts for big-Oh notation.
+
+O(a) << O(log n) << O(n^b) << O(c^n)
+
+where a,b,c are constants
+
+The relation holds even when multiplied by n
+
+O(n) << O(nlog n) << O(n^(b+1)) << O(nc^n)
+
+
+Q. What are the three important aspects when evaluating algorithms?
+Correctness - Algorithm must be correct
+Space Complexity - Must use as little memory as possible
+Time Complexity - Must use as little running time as possible
+
+
+Q. What are the different types of running types to evaluate an algorithm?
+One or more running times can be used to evaluate the algorithm
+
+Worst Case running times - If an algorithm has a worst-case running time of f(n) then any run of the algorithm does not take more than f(n)
+Amortized running times - if the amortized run is f(n) then m runs of the algorithm take m.f(n) on an average
+Expected running times - if the run time is a random variable then the expected value of this random variable is atmost f(n). The randomization is with respect to random choices made my data structure.
+
+
+Q. What is the difference between amortized and expected run times?
+Amortized and Expected run times are both average times, but expected run time is due to the fact that the run time is a random variable. Amortized run time is a gaurantee on the total cost of a sequence of operations
+
+E[X] = Sum of all x 'element of' U | x * Pr[X=x]
+
+Linearity of expected values:
+	E[X+Y] = E[X] + E[Y]
+
+
+Linearity allows us to break complex random variables (left hand) into simpler random variables (right side)
+
+Q. What are indicator random variables?
+A useful trick when calculating expected value for expected run times is to use an indicator random variable -  For example the number of heads in a sequence of k tosses can be considered one toss at a time using indicator random variables:
+
+
+Ii = { 1 if the ith coin is a heads; 0 if the ith coin is a tails }
+
+E[Ii] = 1/2(0) + 1/2(1)
+
+X is k times Ii
+
+E[X] = k/2
+
+The alternate approach is to keep X as a single random variable and calculate all combinations of heads in each of the k attempts.
+In effect "Indicator random variables" with "Linearity of expectation" has allowed us to simplify the calculation.
+
+
+Q. 
