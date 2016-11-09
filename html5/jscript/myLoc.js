@@ -42,34 +42,34 @@ function showMap(coords){
 	var ourCoords = {
 		latitude: 47.62,
 		longitude: -122.52
-	}
+	};
 	var googleLatAndLong = new google.maps.LatLng(ourCoords.latitude, ourCoords.longitude);
 	var mapOptions = {
 		zoom: 10,
 		center: googleLatAndLong,
 		mapTypeId: google.maps.MapTypeId.ROADMAP
-	}
+	};
 
 	var mapDiv = document.getElementById("map");
 	map = new google.maps.Map(mapDiv, mapOptions);
-	if( map != null )
-		alert("inside showmap " + map);
+	//if( map != null )
+		//alert("inside showmap " + map);
 }
 
 function displayLocation(position){
 	var ourCoords = {
 		latitude: 47.62,
 		longitude: -122.52
-	}
-	var latitude = position.coords.latitude;
-	var longitude = position.coords.longitude;
+	};
+	//var latitude = position.coords.latitude;
+	//var longitude = position.coords.longitude;
 
-	var div = document.getElementById( "location" );
-	div.innerHTML = "You are at Latitude: " + deg_to_dms(latitude) + ", Longitude: " + deg_to_dms(longitude) + "<br>";
-	div.innerHTML += "Decimal: " + latitude + ", Longitude: " + longitude + "\n";
+	//var div = document.getElementById( "location" );
+	//div.innerHTML = "You are at Latitude: " + deg_to_dms(latitude) + ", Longitude: " + deg_to_dms(longitude) + "<br>";
+	//div.innerHTML += "Decimal: " + latitude + ", Longitude: " + longitude + "\n";
 
-	var divd = document.getElementById( "distance" );
-	divd.innerHTML = "Your distance from our co-ordinates is " + computeDistance (position.coords, ourCoords ) + " km";
+	//var divd = document.getElementById( "distance" );
+	//divd.innerHTML = "Your distance from our co-ordinates is " + computeDistance (position.coords, ourCoords ) + " km";
 
 	//showMap(ourCoords);	
 	showMap(position.coords);	
