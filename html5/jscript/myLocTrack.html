@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<title>My Location</title>
+	<title>My Location Tracked</title>
 	<meta charset="utf-8">
 	<style>
 	/* Always set the map height explicitly to define the size of the div
@@ -20,11 +20,13 @@
 	</style>
 </head>
 <body>
+	<input type="button" id="watch" value="Whatch Me">
+	<input type="button" id="clearwatch" value="Stop watching">
 	<div id="location"></div>
 	<div id="distance"></div>
-    <div id="map"></div>
+    	<div id="map"></div>
 	<script src="https://maps.googleapis.com/maps/api/js?key="
     	async defer></script>
-	<script src="myLoc.js"></script>
+	<script src="myLocTrack.js"></script>
 </body>
 </html>

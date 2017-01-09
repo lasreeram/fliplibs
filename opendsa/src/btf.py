@@ -2,7 +2,7 @@
 
 fd = open ("test.txt", 'w' )
 
-i = 0
+i = 1
 while ( i <= 100000 ):
 	fd.write( "Line " + str(i) + " - Test file for opendsa\n"  )
 	i += 1

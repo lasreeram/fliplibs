@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Web services using jsonp</title>
+	<meta charset="utf-8">
+	<script>
+	function displayResponse( entries ){
+		alert( "hello" );
+		if( entries == null )
+			alert ( "entries is null!" );
+		else
+			alert ( "size of entries = " + entries.length );
+		var salesDiv = document.getElementById( "sales" );
+		for( var i = 0; i < entries.length; i++ ){
+			var entry = entries[i];
+			var div = document.createElement("div");
+			div.setAttribute("class", "item" );
+			div.innerHTML = entry.name + " sold " + entry.sales + " items";
+			salesDiv.appendChild(div);
+		}
+	}
+	</script>
+</head>
+<body>
+	<style>
+		div {
+			background-color: powderblue;
+		}
+	</style>
+	<div id="sales"></div>
+	<script type="application/javascript" src="http://127.0.0.1:8080/sales.json?callback=displayResponse"></script>
+</body>
+</html>

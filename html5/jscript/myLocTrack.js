@@ -1,5 +1,6 @@
 window.onload = getMyLocation;
 var map;
+var watchId;
 
 function computeDistance(startCoords, destCoords) {
     var startLatRads = degreesToRadians(startCoords.latitude);
@@ -97,8 +98,10 @@ function displayLocation(position){
 
 	//showMap(ourCoords);	
 	//alert ( "show map!" );
-	showMap(position.coords);	
-	addMarker( map, googleLatAndLong, "Home", "565 Sherbourne St" );
+	if( map == null ){
+		showMap(position.coords);	
+		addMarker( map, googleLatAndLong, "Home", "565 Sherbourne St" );
+	}
 }
 
 function handleError(error){
@@ -117,9 +120,26 @@ function handleError(error){
 	div.innerHTML = errorMessage;
 }
 
+function watchLocation() {
+	alert( "inside watch location" );
+	watchId = navigator.geolocation.watchPosition( displayLocation, handleError );
+}
+
+function clearWatch() {
+	if( watchId ) {
+		navigator.geolocation.clearWatch( watchId );
+		watchId = null;
+	}
+}
+
 function getMyLocation(){
 	if( navigator.geolocation ){
-		navigator.geolocation.getCurrentPosition( displayLocation, handleError );
+		//navigator.geolocation.getCurrentPosition( displayLocation, handleError );
+		var watchButton = document.getElementById( "watch" );
+		alert( "hello1" );
+		watchButton.onclick = watchLocation;
+		var clearwatchButton = document.getElementById( "clearwatch" );
+		clearwatchButton.onclick = clearWatch;
 	}else{
 		alert( "browser does not support geolocation!" );
 	}

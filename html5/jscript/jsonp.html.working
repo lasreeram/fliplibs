@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Web services using jsonp</title>
+	<meta charset="utf-8">
+	<script>
+		function test(entries){
+			alert("hi");
+		}
+	</script>
+</head>
+<body>
+	<style>
+		div {
+			background-color: powderblue;
+		}
+	</style>
+	<div id="sales"></div>
+	<script src="http://gumball.wickedlysmart.com?callback=test"></script>
+</body>
+</html>

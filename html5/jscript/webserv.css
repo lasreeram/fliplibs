@@ -1,0 +1,15 @@
+/* mightgumball.css */
+/* got for github for head first programming */
+
+body {
+	margin-left: 40px;
+	margin-right: 40px;
+}
+div#luck {
+	background-color: yellow;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+	margin: 10px 0px 0px 0px;
+	padding: 0px;
+	border: 1px solid #d9d9d9;
+}
