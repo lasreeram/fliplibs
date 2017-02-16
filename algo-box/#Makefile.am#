@@ -1,0 +1,15 @@
+ACLOCAL_AMFLAGS = -I m4
+AM_CPPFLAGS = -I$(prefix)/include -I$(srcdir)/include
+AM_LDFLAGS = -pthread
+
+#headers
+include_HEADERS = include/Array.h
+
+#binaries
+bin_PROGRAMS = arraydemo arraystackdemo stackdemo
+
+arraydemo_SOURCES = demo/arraydemo.cpp 
+arraystackdemo_SOURCES = demo/arraystackdemo.cpp
+stackdemo_SOURCES = demo/stackdemo.cpp 
+
+LDADD = -lmydebug
