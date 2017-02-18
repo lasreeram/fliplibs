@@ -5,6 +5,7 @@
 //based on opendatastructures.org by Pat Morin
 
 namespace AlgoBox{
+
 template <typename T> class Array{
 
 	public:
@@ -71,6 +72,11 @@ template <typename T> class ArrayStack{
 			_used = 0;
 		}
 
+		void init(int size){
+			Array<T> b(std::max(size, 1));
+			_arr = b;
+		}
+
 	
 		T get(int i){
 			return _arr[i];
@@ -122,7 +128,7 @@ template <typename T> class ArrayStack{
 			debug_lib::log( "resize called - new backing array size is %d", _arr.getLength() );
 		}
 
-		friend class DualArrayDeQueue;
+		template<typename S> friend class DualArrayDeQueue;
 
 };
 
@@ -225,35 +231,35 @@ template <typename T> class ArrayQueue{
 };
 
 template <typename T> class ArrayDeQueue{
-	public
+	public:
 		//Operations can be done to both ends of the queue
-		ArrayDequeue(){
+		ArrayDeQueue(){
 			_start = 0;
 			_used = 0;
 		}
 
 		T getFirst(){
-			return get(0);
+			return get(_start);
 		}
 
 		T getLast(){
-			return get(getSize()-1);
+			return get((_start+_used-1)%_arr.getLength());
 		}
 
 		void addFirst(T x){
-			add(0, x);
+			add(_start, x);
 		}
 
 		void addLast(T x){
-			add(getSize(), x);
+			add((_start+_used)%_arr.getLength(), x);
 		}
 
 		T removeFirst(){
-			return remove(0);
+			return remove(_start);
 		}
 
 		T removeLast(){
-			return remove(getSize()-1);
+			return remove((_start+_used-1)%_arr.getLength());
 		}
 
 	private:
@@ -281,7 +287,7 @@ template <typename T> class ArrayDeQueue{
 					_arr[(_start+k)%_arr.getLength()] = _arr[(_start+k+1)%_arr.getLength()];
 			}else{
 				for( int k = _used; k > i; k-- )
-					_arr[(_start+k)%_arr.getLength()] = _arr[(start+k-1)%_arr.getLength];
+					_arr[(_start+k)%_arr.getLength()] = _arr[(_start+k-1)%_arr.getLength()];
 			}
 
 			_arr[(_start+i)%_arr.getLength()] = x;
@@ -296,7 +302,7 @@ template <typename T> class ArrayDeQueue{
 					_arr[(_start+k)%_arr.getLength()] = _arr[(_start+k-1)%_arr.getLength()];
 			}else{
 				for( int k = i; k < _used-1; k++ )
-					_arr[(_start+k)%_arr.getLength()] = _arr[(start+k+1)%_arr.getLength];
+					_arr[(_start+k)%_arr.getLength()] = _arr[(_start+k+1)%_arr.getLength()];
 			}
 			
 			_used--;
@@ -337,7 +343,9 @@ template <typename T> class ArrayDeQueue{
 template <typename T> class DualArrayDeQueue{
 
 	public:
-		DUalArrayDequeue(){
+		DualArrayDeQueue(){
+			_front.init(8);
+			_back.init(8);
 		}
 
 		int getSize(){
@@ -377,7 +385,7 @@ template <typename T> class DualArrayDeQueue{
 			if( i < _front.getSize() ){
 				return _front.get(_front.getSize() - i - 1);
 			}else{
-				return _back.get(i-front.size());
+				return _back.get(i-_front.getSize());
 			}
 		}
 	
@@ -385,7 +393,7 @@ template <typename T> class DualArrayDeQueue{
 			if( i < _front.getSize() ){
 				return _front.set(_front.getSize() - i - 1, x);
 			}else{
-				return _back.set(i-front.size(), x);
+				return _back.set(i-_front.getSize(), x);
 			}
 		}
 
@@ -393,19 +401,22 @@ template <typename T> class DualArrayDeQueue{
 			if( i < _front.getSize() ){
 				return _front.add(_front.getSize() - i, x);
 			}else{
-				return _back.add(i-front.size(), x);
+				return _back.add(i-_front.getSize(), x);
 			}
 			balance();
 		}
 
 		T remove(int i){
+			T x;
 			if( i < _front.getSize() ){
-				return _front.remove(_front.getSize() - i -1);
+				debug_lib::log( "remove from front called" );
+				x = _front.remove(_front.getSize() - i -1);
 			}else{
-				return _back.remove(i-front.size());
+				debug_lib::log( "remove from front called" );
+				x = _back.remove(i-_front.getSize());
 			}
 			balance();
-			return x;	
+			return x;
 		}
 	
 
@@ -414,19 +425,19 @@ template <typename T> class DualArrayDeQueue{
 			 	3*_back.getSize() < _front.getSize() ){
 				int n = _front.getSize() + _back.getSize();
 				int nf = n/2;
-				Array<T> af(max(2*nf), 1);
+				Array<T> af(std::max(2*nf, 1));
 				for(int i = 0; i < nf; i++ ){
 					af[nf-i-1] = get(i);
 				}
 				int nb = n - nf;
-				Array<T> ab(max(2*nb), 1);
+				Array<T> ab(std::max(2*nb, 1));
 				for(int i=0; i< nb; i++ ){
 					ab[i] = get(nf+i);
 				}
 				_front._arr = af;
 				_front._used = nf;
 				_back._arr = ab;
-				_back._arr = nb;
+				_back._used = nb;
 			}
 		}
 };
