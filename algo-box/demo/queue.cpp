@@ -1,5 +1,5 @@
 #include <debug.h>
-#include <Array.h>
+#include <ArrayList.h>
 
 int main(int argc, char** argv){
 	debug_lib::init( argv[0]);

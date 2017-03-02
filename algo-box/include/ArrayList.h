@@ -2,6 +2,7 @@
 #define _MY_ARRAY_DEF_H_
 
 #include <assert.h>
+#include <math.h>
 //based on opendatastructures.org by Pat Morin
 
 namespace AlgoBox{
@@ -26,6 +27,7 @@ template <typename T> class Array{
 		T& operator[] (int i){
 			//debug_lib::log( "value of i is %d, length is %d", i, _length);
 			if( !(i>=0 && i<_length) ){ 
+				debug_lib::log( "Array: value of i is %d, length is %d", i, _length);
 				std::string errstr = "Array index out of bounds - " + i;
 				throw debug_lib::Exception(errstr.c_str());
 			}
@@ -93,7 +95,7 @@ template <typename T> class ArrayStack{
 		}
 	
 		virtual void add(int i, T x){
-			debug_lib::log( "add called for index is %d", i );
+			debug_lib::log( "ArrayStack: add called for index is %d", i );
 			if( (_used+1) > _arr.getLength() ) 
 				resize();
 			for( int j = _used; j > i; j-- ){
@@ -101,18 +103,18 @@ template <typename T> class ArrayStack{
 			}
 			_arr[i] = x;
 			_used++;
-			debug_lib::log( "number of used entries = %d", _used );
+			debug_lib::log( "ArrayStack: number of used entries = %d", _used );
 		}
 
 		virtual T remove( int i ){
-			debug_lib::log( "remove called for index is %d", i );
+			debug_lib::log( "ArrayStack: remove called for index is %d", i );
 			T x = _arr[i];
 			for( int j = i; j < _used-1; j++ )
 				_arr[j] = _arr[j+1];
 			_used--;
 			if( _arr.getLength() >= 3*_used ) 
 				resize();
-			debug_lib::log( "number of used entries = %d", _used );
+			debug_lib::log( "ArrayStack: number of used entries = %d", _used );
 			return x;
 		}
 
@@ -120,12 +122,12 @@ template <typename T> class ArrayStack{
 		int _used;
 		Array<T> _arr;
 		virtual void resize(){
-			debug_lib::log( "resize called - backing array size is %d", _arr.getLength() );
+			debug_lib::log( "ArrayStack: resize called - backing array size is %d", _arr.getLength() );
 			Array<T> b(std::max(2*_used, 1));
-			for( int i = 0; i < _used-1; i++ )
+			for( int i = 0; i < _used; i++ )
 				b[i] = _arr[i];
 			_arr = b;
-			debug_lib::log( "resize called - new backing array size is %d", _arr.getLength() );
+			debug_lib::log( "ArrayStack: resize called - new backing array size is %d", _arr.getLength() );
 		}
 
 		template<typename S> friend class DualArrayDeQueue;
@@ -138,23 +140,23 @@ template<typename T> class FastArrayStack : public ArrayStack<T> {
 
 	public:
 		void add(int i, T x){
-			debug_lib::log( "add called for index is %d", i );
+			debug_lib::log( "FastArrayStack: add called for index is %d", i );
 			if( (_used+1) > _arr.getLength() ) 
 				resize();
 			std::copy_backward( _arr+i, _arr+_used, _arr+_used+1 );
 			_arr[i] = x;
 			_used++;
-			debug_lib::log( "number of used entries = %d", _used );
+			debug_lib::log( "FastArrayStack: number of used entries = %d", _used );
 		}
 
 	
 	protected:
 		void resize(){
-			debug_lib::log( "resize called - backing array size is %d", _arr.getLength() );
+			debug_lib::log( "FastArrayStack: resize called - backing array size is %d", _arr.getLength() );
 			Array<T> b(std::max(2*_used, 1));
 			std::copy( _arr+0, _arr+_used, b+0);
 			_arr = b;
-			debug_lib::log( "resize called - new backing array size is %d", _arr.getLength() );
+			debug_lib::log( "FastArrayStack: resize called - new backing array size is %d", _arr.getLength() );
 		}
 	
 };
@@ -219,13 +221,13 @@ template <typename T> class ArrayQueue{
 		int _start;
 		int _used;
 		virtual void resize(){
-			debug_lib::log( "resize called - backing array size is %d", _arr.getLength() );
+			debug_lib::log( "ArrayQueue: resize called - backing array size is %d", _arr.getLength() );
 			Array<T> b(std::max(2*_used, 1));
 			for( int i = 0; i < _used; i++ )
 				b[i] = _arr[(i+_start) % _arr.getLength()];
 			_arr = b;
 			_start = 0;
-			debug_lib::log( "resize called - new backing array size is %d", _arr.getLength() );
+			debug_lib::log( "ArrayQueue: resize called - new backing array size is %d", _arr.getLength() );
 		}
 
 };
@@ -314,13 +316,13 @@ template <typename T> class ArrayDeQueue{
 
 		
 		void resize(){
-			debug_lib::log( "resize called - backing array size is %d", _arr.getLength() );
+			debug_lib::log( "ArrayDeQueue: resize called - backing array size is %d", _arr.getLength() );
 			Array<T> b(std::max(2*_used, 1));
 			for( int i = 0; i < _used; i++ )
 				b[i] = _arr[(i+_start) % _arr.getLength()];
 			_arr = b;
 			_start = 0;
-			debug_lib::log( "resize called - new backing array size is %d", _arr.getLength() );
+			debug_lib::log( "ArrayDeQueue: resize called - new backing array size is %d", _arr.getLength() );
 		}
 
 };
@@ -442,5 +444,77 @@ template <typename T> class DualArrayDeQueue{
 		}
 };
 
+template <typename T> class RootishArrayStack{
+
+	public:
+		RootishArrayStack(){
+			_used = 0;
+		}
+
+		int getSize(){
+			return _used;
+		}
+	
+		T get(int i){
+			int block = indexToBlock(i);
+			int j = i - (block*(block+1)/2);
+			debug_lib::log( "RootishArrayStack: get called with index = %d, i is = %d, (block*(block+1)/2) is %d", j, i, (block*(block+1)/2) );
+			return _blocks.get(block)[j];
+		}
+
+		T set(int i, T x){
+			int block = indexToBlock(i);
+			int j = i - (block*(block+1)/2);
+			debug_lib::log( "RootishArrayStack: set called with index = %d, i is = %d, (block*(block+1)/2) is %d", j, i, (block*(block+1)/2) );
+			
+			T y = _blocks.get(block)[j];
+			_blocks.get(block)[j] = x;
+		}
+
+		void add( int i, T x ){
+			int r = _blocks.getSize();
+			debug_lib::log( "RootishArrayStack: inside rootish add %d value of indx 0 is %ld", r );
+			if( r*(r+1)/2 < _used+1 )
+				grow();
+			_used++;
+			for( int j = _used-1; j > i; j-- )
+				set(j, get(j-1));
+			set(i, x);
+		}
+
+
+		T remove(int i){
+			T x = get(i);
+			for(int j = i; j < _used-1; j++)
+				set(j, get(j+1));
+			_used--;
+			int r = _blocks.getSize();
+			if( (r-2)*(r-1)/2 >= _used )
+				shrink();
+			return x;
+		}
+
+	private:
+		ArrayStack<T*> _blocks;
+		int _used;
+		int indexToBlock(int i){
+			double db = (-3.0 + sqrt(9 + 8*i)) / 2.0;
+			int block = (int)ceil(db);
+			return block;
+		}
+
+		void grow(){
+			debug_lib::log( "RootishArrayStack: grow called %d", _blocks.getSize() );
+			_blocks.add(_blocks.getSize(), new T[_blocks.getSize()+1]);
+		}
+	
+		void shrink(){
+			int r = _blocks.getSize();
+			while( r > 0 && (r-2)*(r-1)/2 >= _used ){
+				delete[] _blocks.remove(_blocks.getSize()-1);
+				r--;
+			}
+		}
+};
 }
 #endif
