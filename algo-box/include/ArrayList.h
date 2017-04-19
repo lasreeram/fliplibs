@@ -264,6 +264,10 @@ template <typename T> class ArrayDeQueue{
 			return remove((_start+_used-1)%_arr.getLength());
 		}
 
+		int getSize(){
+			return _used;
+		}
+
 	private:
 		Array<T> _arr;
 		int _start;
@@ -516,5 +520,33 @@ template <typename T> class RootishArrayStack{
 			}
 		}
 };
+
+/*
+	Bounded Dequeue used by SpaceEfficientLinkedList
+*/
+template <typename T> class BDeQueue : public ArrayDeQueue<T> {
+	public:
+		BDeQueue(int b){
+			_used = 0;
+			j = 0;
+			Array<int> z(b+1);
+			a = z;
+		}
+
+		~BDeQueue(){
+		}
+
+		void add(int i, T x){
+			ArrayDeQueue<T>::add(i, x);
+		}
+
+		void add(T x){
+			ArrayDeQueue<T>::add(getsize(), x);
+			return;
+		}
+
+		void resize(){}
+};
+
 }
 #endif

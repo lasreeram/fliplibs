@@ -17,6 +17,9 @@ namespace debug_lib{
 			Exception(const char* err) {
 				_error = err;
 			}
+			Exception(string err) {
+				_error = err;
+			}
 			//throw() here means that this function cannot not throw any exception
 			const char* what() const throw() { return _error.c_str(); }
 			//throw() here means that this function cannot not throw any exception

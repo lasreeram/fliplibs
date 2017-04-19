@@ -1,10 +1,10 @@
 #include <debug.h>
-#include <ArrayList.h>
+#include <LinkedList.h>
 
 int main(int argc, char** argv){
 	debug_lib::init( argv[0]);
 	
-	AlgoBox::Stack<int> s1;
+	AlgoBox::SinglyLinkedList<int> s1;
 	s1.push(100);
 	s1.push(200);
 	s1.push(300);
