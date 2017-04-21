@@ -14,7 +14,7 @@ HandleGetIndex.prototype.process = function process(ctxt){
 		console.log( "error finding restaurant!" );
 	}
 	ctxt.response.writeHeader(200, {"Content-Type": "application/json"});
-		ctxt.response.write('{"Index-html"}');
+		ctxt.response.write(JSON.stringify(ctxt.query));
 		ctxt.response.end();
 	});
 }

@@ -2,6 +2,7 @@ HttpServer = require("http");
 HttpServerContext = require("./HttpServerContext");
 HandleGetIndex = require("./HandleGetIndex" );
 HandlePageNotFound = require("./HandlePageNotFound");
+Url = require("url");
 
 var MongoClient = require('mongodb').MongoClient;
 var mainHandler = function (request, response) {
@@ -13,11 +14,15 @@ var mainHandler = function (request, response) {
 			console.log("error connecting " + err );
 			return null;
 	  	}
-		var ctxt = new HttpServerContext(db, request, response);
 
-		console.log("I got kicked");
+		//console.log("I got kicked");
+		var parsedUrl = Url.parse(request.url, true);
+		var queryObj = parsedUrl.query;
+		console.log( JSON.stringify(queryObj) );
+		console.log( parsedUrl.pathname );
+		var ctxt = new HttpServerContext(db, request, response, queryObj);
 		if( ctxt.request.method == "GET" ){
-			if( request.url == "/index" ){
+			if( parsedUrl.pathname == "/index/" ){
 				var handler = new HandleGetIndex();
 				handler.process(ctxt);
 			}else{
