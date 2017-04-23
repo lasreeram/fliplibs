@@ -2,6 +2,7 @@ HttpServer = require("http");
 HttpServerContext = require("./HttpServerContext");
 HandleGetIndex = require("./HandleGetIndex" );
 HandlePageNotFound = require("./HandlePageNotFound");
+FileToQueHandler = require("./FileToQueHandler");
 Url = require("url");
 
 var MongoClient = require('mongodb').MongoClient;
@@ -18,11 +19,15 @@ var mainHandler = function (request, response) {
 		//console.log("I got kicked");
 		var parsedUrl = Url.parse(request.url, true);
 		var queryObj = parsedUrl.query;
+		var mongodbQueue = require('mongodb-queue');
 		console.log( JSON.stringify(queryObj) );
 		console.log( parsedUrl.pathname );
-		var ctxt = new HttpServerContext(db, request, response, queryObj);
+		var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue);
 		if( ctxt.request.method == "GET" ){
-			if( parsedUrl.pathname == "/index/" ){
+			if( (parsedUrl.pathname == "/filetoque") || (parsedUrl.pathname == "/filetoque/") ){
+				var handler = new FileToQueHandler();
+				handler.process(ctxt);
+			}else if( (parsedUrl.pathname == "/index/") || (parsedUrl.pathname == "/index") ){
 				var handler = new HandleGetIndex();
 				handler.process(ctxt);
 			}else{

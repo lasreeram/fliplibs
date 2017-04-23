@@ -10,7 +10,7 @@ MongoClient.connect("mongodb://localhost:27017/test", function(err, db){
 		console.log("error connecting " + err );
 		return null;
 	}
-	var qobj = mongodbQueue(db, 'cleared-queue');
+	var qobj = mongodbQueue(db, 'xyz-queue');
 	var readone = function( err, msg ){
 		if( err || !msg ){
 			console.log( "finished reading all" );

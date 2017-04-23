@@ -5,6 +5,7 @@ function HandleGetIndex(){
 
 HandleGetIndex.prototype.process = function process(ctxt){
 	console.log( "process called within GetIndex handler!" );
+	console.log( ctxt.query.id );
 	var collection = ctxt.db.collection('restaurants');
 	collection.find( {"restaurant_id": "40400429"} ).toArray(function( err, item ) {
 	if( !err ){

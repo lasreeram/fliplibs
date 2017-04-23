@@ -18,7 +18,7 @@ MongoClient.connect("mongodb://localhost:27017/test", function(err, db){
 		stream.pipe(parser);
 		console.log( 'reading file data.json' );
 
-		var qobj = mongodbQueue(db, 'cleared-queue');
+		var qobj = mongodbQueue(db, 'xyz-queue');
 		parser.on('data', function (obj) {
 			var strdata = JSON.stringify(obj);
   			console.log(strdata); // whatever you will do with each JSON object
