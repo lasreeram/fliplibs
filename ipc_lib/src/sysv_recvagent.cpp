@@ -7,7 +7,7 @@
 using namespace ipc_lib;
 
 void print_help(){
-	std::cout << "sysv_recvagent <my_mailbox>" << std::endl;
+	std::cout << "sysv_recvagent <my_actor>" << std::endl;
 }
 
 int main(int argc, char** argv){
@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 	//char buf[1024] = {0};
 	try{
 		SystemVIPC* ipc = new SystemVIPC("/tmp");
-		ipc->createMailBox( argv[1] );
+		ipc->createActor( argv[1] );
 		my_msgbuf msg;
 		msg.msgtype = 1;
 		int rc = ipc->recv( argv[1], &msg, sizeof(msg) );

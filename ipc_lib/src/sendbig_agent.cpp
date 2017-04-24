@@ -7,7 +7,7 @@
 using namespace ipc_lib;
 
 void print_help(){
-	std::cout << "sendbig_agent <dest_mailbox> <len of data to send>" << std::endl;
+	std::cout << "sendbig_agent <dest_actor> <len of data to send>" << std::endl;
 }
 
 int main(int argc, char** argv){

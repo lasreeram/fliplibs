@@ -7,7 +7,7 @@
 using namespace ipc_lib;
 
 void print_help(){
-	std::cout << "recvagent <my_mailbox>" << std::endl;
+	std::cout << "recvagent <my_actor>" << std::endl;
 }
 
 int main(int argc, char** argv){
@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 	char buf[1024] = {0};
 	try{
 		ShmIPC* ipc = new ShmIPC();
-		ipc->createMailBox( argv[1] );
+		ipc->createActor( argv[1] );
 		ipc->recv( argv[1], buf, 1024 );
 		std::cout << buf << std::endl;
 		delete ipc;

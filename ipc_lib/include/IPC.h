@@ -69,7 +69,7 @@ namespace ipc_lib{
 			virtual ~ShmInitializer(){};
 	};
 
-	class MailBoxMetaInitializer : public ShmInitializer{
+	class ActorMetaInitializer : public ShmInitializer{
 		public:
 			void initialize( void* shm, int numBlocks, int blockSize ){
 				memset( shm, 0x00, (numBlocks*blockSize) );
@@ -104,7 +104,7 @@ namespace ipc_lib{
 			}
 	};
 
-	class MailBoxIdInitializer : public ShmInitializer{
+	class ActorIdInitializer : public ShmInitializer{
 		public:
 			void initialize( void* shm, int numBlocks, int blockSize ){
 				memset( shm, 0x00, (numBlocks*blockSize) );
@@ -133,7 +133,7 @@ namespace ipc_lib{
 					ptr = (char*)shm + (i*blockSize);
 					if( *ptr == '\0' )
 						break;
-					debug_lib::log( "mailbox %s has id %d", ptr, i );
+					debug_lib::log( "actor %s has id %d", ptr, i );
 				}
 			}
 	};
@@ -178,7 +178,7 @@ namespace ipc_lib{
 					bool once = false;
 					while( *ptr >= 0 ){
 						if( !once ){
-							debug_lib::log_no_newline( "\nmessage queue for mailbox %d = ", i );
+							debug_lib::log_no_newline( "\nmessage queue for actor %d = ", i );
 							once = true;
 						}
 						debug_lib::log_no_newline( "%d,", *ptr );
@@ -265,8 +265,8 @@ namespace ipc_lib{
 	//index of the buffer to use is communicated via TCPIP
 	class IPC{
 		public:
-			virtual int createMailBox(const char* name) = 0;
-			virtual int locateMailBox(const char* name) = 0;
+			virtual int createActor(const char* name) = 0;
+			virtual int locateActor(const char* name) = 0;
 			virtual int send(const char* dest, void* ptr, int len)=0;
 			virtual int send(int dest_id, void* ptr, int len)=0;
 			virtual int recv(const char* dest, void* ptr, int size)=0;
@@ -280,9 +280,9 @@ namespace ipc_lib{
 
 	class ShmIPC : public IPC{
 		public:
-			int createMailBox(const char* name);
-			int locateMailBox(const char* name);
-			void getMailBoxName(int id, std::string& name);
+			int createActor(const char* name);
+			int locateActor(const char* name);
+			void getActorName(int id, std::string& name);
 			int send(const char* dest, void* ptr, int len);
 			int send(int mbid, void* ptr, int len);
 			int recv(int mbid, void* ptr, int size);
@@ -294,9 +294,9 @@ namespace ipc_lib{
 			ShmIPC();
 		private:
 			SharedMemoryVariableSize* _msgQShm;
-			SharedMemory* _mailboxQShm;
-			SharedMemory* _mailboxIdShm;
-			SharedMemory* _mailboxMetaData;
+			SharedMemory* _actorQShm;
+			SharedMemory* _actorIdShm;
+			SharedMemory* _actorMetaData;
 			int recv_priv(int* mbIdQAddr, int mbid, void* ptr, int size);
 	};
 
@@ -321,8 +321,8 @@ namespace ipc_lib{
 			SystemVIPC( const char* basePath );
 			~SystemVIPC(){
 			}
-			int createMailBox(const char* name);
-			int locateMailBox(const char* name);
+			int createActor(const char* name);
+			int locateActor(const char* name);
 			int send(const char* dest, void* ptr, int len);
 			int send(int dest_id, void* packet, int len);
 			int recv(const char* dest, void* ptr, int size);

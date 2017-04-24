@@ -22,8 +22,8 @@ int main(int argc, char** argv){
 
 	try{
 		ShmIPC* ipc = new ShmIPC();
-		ipc->createMailBox( argv[1] );
-		debug_lib::log( "mailbox %s created", argv[1] );
+		ipc->createActor( argv[1] );
+		debug_lib::log( "actor %s created", argv[1] );
 		delete ipc;
 	}catch(debug_lib::Exception& e){
 		debug_lib::log(  "exit due to error: %s", e.what());

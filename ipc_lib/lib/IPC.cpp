@@ -259,58 +259,58 @@ namespace ipc_lib{
 		//_msgQShm = new SharedMemory("MBMQ", 1024, 100, new DataInitializer() );
 		_msgQShm = new SharedMemoryVariableSize( 1024, 8192, 100);
 
-		//mailbox name to id mapping
-		_mailboxIdShm = new SharedMemory( "MBID", 64, 100, new MailBoxIdInitializer() );
+		//actor name to id mapping
+		_actorIdShm = new SharedMemory( "MBID", 64, 100, new ActorIdInitializer() );
 
-		//mailbox que by id. the number of blocks here should be equal to mailboxIdShm
-		_mailboxQShm = new FixedIndexSharedMemory( "MBIQ", 1024, 100, new IntegerMinusOneInitializer() );
+		//actor que by id. the number of blocks here should be equal to actorIdShm
+		_actorQShm = new FixedIndexSharedMemory( "MBIQ", 1024, 100, new IntegerMinusOneInitializer() );
 
 		//meta data for shared memory. For example keeping running counter for mbid
-		_mailboxMetaData = new SharedMemory( "MBMD", 1024, 1, new MailBoxMetaInitializer() );
+		_actorMetaData = new SharedMemory( "MBMD", 1024, 1, new ActorMetaInitializer() );
 
 		_record_mutex = new Mutex( "SHMM", 100 );
 		_global_mutex = new Mutex( "GLBM", 1 );
         }
 
-	int ShmIPC::createMailBox(const char* name){
+	int ShmIPC::createActor(const char* name){
 		int idIndex;
-		idIndex = locateMailBox(name);
+		idIndex = locateActor(name);
 		if( idIndex >= 0 )
 			return idIndex;
 		AutoMutex(_global_mutex, 0);
-		char* ptr = (char*) _mailboxIdShm->allocBlock(idIndex);
-		if ( strlen(name) > ((unsigned int)(_mailboxIdShm->getBlockSize()-1)) )
+		char* ptr = (char*) _actorIdShm->allocBlock(idIndex);
+		if ( strlen(name) > ((unsigned int)(_actorIdShm->getBlockSize()-1)) )
 			debug_lib::throw_fatal_error( "name %s in createMailbox is too long", name );
 		strcpy( ptr, name );
-		debug_lib::log( "mailbox created %s at %p index %d", ptr, ptr, idIndex );
+		debug_lib::log( "actor created %s at %p index %d", ptr, ptr, idIndex );
 		return idIndex;
 	}
 
-	void ShmIPC::getMailBoxName(int id, std::string& name){
-		char* ptr = (char*) _mailboxIdShm->getAddressForIndex(id);
-		if ( !_mailboxIdShm->isValidAddress(ptr) )
-			debug_lib::throw_fatal_error( "getmailboxname: shared memory is corrupt" );
+	void ShmIPC::getActorName(int id, std::string& name){
+		char* ptr = (char*) _actorIdShm->getAddressForIndex(id);
+		if ( !_actorIdShm->isValidAddress(ptr) )
+			debug_lib::throw_fatal_error( "getactorname: shared memory is corrupt" );
 		name = ptr;
 	}
 	
-	int ShmIPC::locateMailBox(const char* name){
-		char* ptr = (char*) _mailboxIdShm->getAddressForIndex(0);
-		for( int i = 0; i < _mailboxIdShm->getNumBlocks(); i++ ){
+	int ShmIPC::locateActor(const char* name){
+		char* ptr = (char*) _actorIdShm->getAddressForIndex(0);
+		for( int i = 0; i < _actorIdShm->getNumBlocks(); i++ ){
 			if ( *ptr == '\0' )
 				continue;
 			if ( strcmp( ptr, name ) == 0 ){
 				return i;
 			}
-			ptr = ptr + _mailboxIdShm->getBlockSize();
+			ptr = ptr + _actorIdShm->getBlockSize();
 		}
 		return -1;
 	}
 	
         int ShmIPC::send(const char* mbname, void* ptr, int len){
 		debug_lib::log( "send: attempt to send %d bytes", len );
-		int mbid = locateMailBox(mbname);
+		int mbid = locateActor(mbname);
 		if ( mbid < 0 ){
-			debug_lib::log( "send: cannot locate destination mailbox %s", mbname );
+			debug_lib::log( "send: cannot locate destination actor %s", mbname );
 			return -1;
 		}
 		return send( mbid, ptr, len );
@@ -326,14 +326,14 @@ namespace ipc_lib{
 		gMutex.release();
 
 		AutoMutex mutex(_record_mutex, mbid);
-		int* mbIdQ = (int*)_mailboxQShm->getAddressForIndex(mbid);
+		int* mbIdQ = (int*)_actorQShm->getAddressForIndex(mbid);
 		while ( *mbIdQ >= 0 ){
 			mbIdQ += sizeof(int);
-			int endOfMemory = _mailboxQShm->isEndOfMemory(mbIdQ);
+			int endOfMemory = _actorQShm->isEndOfMemory(mbIdQ);
 			if ( endOfMemory == 1 )
-				debug_lib::throw_fatal_error( "too many messages in the mailbox queue %d", mbid);
+				debug_lib::throw_fatal_error( "too many messages in the actor queue %d", mbid);
 			else if ( endOfMemory == -1 )
-				debug_lib::throw_fatal_error( "mailbox memory is corrupt - %d", mbid);
+				debug_lib::throw_fatal_error( "actor memory is corrupt - %d", mbid);
 		}
 		*mbIdQ = index;
 		return 0;
@@ -341,18 +341,18 @@ namespace ipc_lib{
 
         int ShmIPC::recv(const char* mbname, void* ptr, int size){
 		debug_lib::log( "recv: waiting to recv on %s", mbname );
-		int mbid = locateMailBox(mbname);
+		int mbid = locateActor(mbname);
 		if ( mbid < 0 ){
-			debug_lib::log( "recv: cannot locate destination mailbox %s", mbname );
+			debug_lib::log( "recv: cannot locate destination actor %s", mbname );
 			return -1;
 		}
 		return recv(mbid, ptr, size );
         }
 
         int ShmIPC::recv_no_wait(const char* mbname, void* ptr, int size){
-		int mbid = locateMailBox(mbname);
+		int mbid = locateActor(mbname);
 		if ( mbid < 0 ){
-			debug_lib::log( "recv_no_wait: cannot locate destination mailbox %s", mbname );
+			debug_lib::log( "recv_no_wait: cannot locate destination actor %s", mbname );
 			return -1;
 		}
 		return recv_no_wait(mbid, ptr, size );
@@ -360,7 +360,7 @@ namespace ipc_lib{
 
         int ShmIPC::recv_no_wait(int mbid, void* ptr, int size){
 		int* mbIdQ;
-		mbIdQ = (int*)_mailboxQShm->getAddressForIndex(mbid);
+		mbIdQ = (int*)_actorQShm->getAddressForIndex(mbid);
 		if( *mbIdQ == -1 )
 			return 0; //no data
 		else if ( *mbIdQ < 0 )
@@ -372,7 +372,7 @@ namespace ipc_lib{
         int ShmIPC::recv(int mbid, void* ptr, int size){
 		int* mbIdQ;
 		while( true ){
-			mbIdQ = (int*)_mailboxQShm->getAddressForIndex(mbid);
+			mbIdQ = (int*)_actorQShm->getAddressForIndex(mbid);
 			if ( *mbIdQ >= 0 )
 				break;
 		}
@@ -391,10 +391,10 @@ namespace ipc_lib{
 		while ( *mbIdQ >= 0 ){
 			mbIdQPrev = mbIdQ;
 			mbIdQ += sizeof(int);
-			if ( _mailboxQShm->isEndOfMemory(mbIdQ) ){
+			if ( _actorQShm->isEndOfMemory(mbIdQ) ){
 				std::string name;
-				getMailBoxName(mbid, name);
-				debug_lib::throw_fatal_error( "too many messages in the mailbox queue %s", name.c_str() );
+				getActorName(mbid, name);
+				debug_lib::throw_fatal_error( "too many messages in the actor queue %s", name.c_str() );
 			}
 			*mbIdQPrev = *mbIdQ;
 		}
@@ -407,19 +407,19 @@ namespace ipc_lib{
 		debug_lib::log_no_newline( "\n" );
 
 		debug_lib::log( "-----------------------------------------dumping id data-----------------------------------------" );
-		_mailboxIdShm->dumpMemory(new MailboxIdQDumper());
+		_actorIdShm->dumpMemory(new MailboxIdQDumper());
 		debug_lib::log_no_newline( "\n" );
 
-		debug_lib::log( "-----------------------------------------dumping mailbox queue-----------------------------------" );
-		_mailboxQShm->dumpMemory(new MailboxQDumper());
+		debug_lib::log( "-----------------------------------------dumping actor queue-----------------------------------" );
+		_actorQShm->dumpMemory(new MailboxQDumper());
 		debug_lib::log_no_newline( "\n" );
 	}
 
 	ShmIPC::~ShmIPC(){
 		delete _msgQShm;
-		delete _mailboxQShm;
-		delete _mailboxIdShm;
-		delete _mailboxMetaData;
+		delete _actorQShm;
+		delete _actorIdShm;
+		delete _actorMetaData;
 		delete _record_mutex;
 		delete _global_mutex;
 	}
@@ -554,8 +554,8 @@ namespace ipc_lib{
 		_path = path;
 	}
 
-	int SystemVIPC::createMailBox(const char* name){
-            int ret = locateMailBox (name );
+	int SystemVIPC::createActor(const char* name){
+            int ret = locateActor (name );
             if ( ret > 0 )
                     return ret;
             int key = getKey(name);
@@ -566,14 +566,14 @@ namespace ipc_lib{
             return queue_id;
         }
 
-        int SystemVIPC::locateMailBox(const char* name){
+        int SystemVIPC::locateActor(const char* name){
             int key = getKey(name);
             int queue_id = msgget( key, 0 );
             return queue_id;
         }
 
         int SystemVIPC::send(const char* dest, void* ptr, int len){
-            int qid = locateMailBox(dest);
+            int qid = locateActor(dest);
             return send( qid, ptr, len );
         }
 
@@ -588,7 +588,7 @@ namespace ipc_lib{
         }
 
         int SystemVIPC::recv(const char* dest, void* ptr, int size){
-            int qid = locateMailBox(dest);
+            int qid = locateActor(dest);
             return recv( qid, ptr, size );
         }
 

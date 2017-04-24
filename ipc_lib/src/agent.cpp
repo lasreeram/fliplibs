@@ -7,7 +7,7 @@
 using namespace ipc_lib;
 
 void print_help(){
-	std::cout << "agent <my_mailbox> <dest_mailbox> <myname>" << std::endl;
+	std::cout << "agent <my_actor> <dest_actor> <myname>" << std::endl;
 }
 
 int main(int argc, char** argv){
@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 	char buf[1024] = {0};
 	try{
 		ShmIPC* ipc = new ShmIPC();
-		ipc->createMailBox( argv[1] );
+		ipc->createActor( argv[1] );
 		sleep(3); //wait for 3 seconds for the other agent to start
 		sprintf( buf, "%s says:hello", argv[3] );
 		int rc = ipc->send( argv[2], buf, strlen(buf) );
