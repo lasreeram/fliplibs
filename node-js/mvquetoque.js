@@ -11,7 +11,7 @@ MongoClient.connect("mongodb://localhost:27017/test", function(err, db){
 		return null;
 	}
 	var qobj1 = mongodbQueue(db, 'xyz-queue');
-	var qobj2 = mongodbQueue(db, 'mas-queue');
+	var qobj2 = mongodbQueue(db, 'abc-queue');
 	var readone = function( err, msg ){
 		if( err || !msg ){
 			console.log( "finished reading all" );
