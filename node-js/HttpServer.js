@@ -1,9 +1,9 @@
 HttpServer = require("http");
 HttpServerContext = require("./HttpServerContext");
-HandleGetIndex = require("./HandleGetIndex" );
-HandlePageNotFound = require("./HandlePageNotFound");
-FileToQueHandler = require("./FileToQueHandler");
+HandleGetHtmlPage = require("./HandleGetHtmlPage");
+HandlePostAction = require("./HandlePostAction");
 Url = require("url");
+var querystring = require('querystring');
 
 var MongoClient = require('mongodb').MongoClient;
 var mainHandler = function (request, response) {
@@ -16,24 +16,34 @@ var mainHandler = function (request, response) {
 			return null;
 	  	}
 
-		//console.log("I got kicked");
 		var parsedUrl = Url.parse(request.url, true);
-		var queryObj = parsedUrl.query;
 		var mongodbQueue = require('mongodb-queue');
 		console.log( JSON.stringify(queryObj) );
 		console.log( parsedUrl.pathname );
-		var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue);
-		if( ctxt.request.method == "GET" ){
-			if( (parsedUrl.pathname == "/filetoque") || (parsedUrl.pathname == "/filetoque/") ){
-				var handler = new FileToQueHandler();
+		if( request.method == "GET" ){
+			var queryObj = parsedUrl.query;
+			var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue, parsedUrl);
+			var handler = new HandleGetHtmlPage();
+			handler.process(ctxt);
+		}else if ( request.method = "POST" ){
+			var queryData = "";
+			var queryObj = null;
+		        request.on('data', function(data) {
+		            queryData += data;
+            		    queryObj = querystring.parse(queryData);
+		            if(queryData.length > 1e6) {
+		                queryData = "";
+		                response.writeHead(413, {'Content-Type': 'text/plain'}).end();
+		                request.connection.destroy();
+		            }
+		        });
+        		request.on('end', function() {
+				console.log( "queryData = " + queryData );
+				console.log( "query obj = " + JSON.stringify(queryObj) ); 
+				var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue, parsedUrl);
+				var handler = new HandlePostAction();
 				handler.process(ctxt);
-			}else if( (parsedUrl.pathname == "/index/") || (parsedUrl.pathname == "/index") ){
-				var handler = new HandleGetIndex();
-				handler.process(ctxt);
-			}else{
-				var handler = new HandlePageNotFound();
-				handler.process(ctxt);
-			}
+        		});
 		}
 	});
 }
