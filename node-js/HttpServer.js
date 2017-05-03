@@ -18,8 +18,8 @@ var mainHandler = function (request, response) {
 
 		var parsedUrl = Url.parse(request.url, true);
 		var mongodbQueue = require('mongodb-queue');
-		console.log( JSON.stringify(queryObj) );
-		console.log( parsedUrl.pathname );
+		//console.log( JSON.stringify(queryObj) );
+		//console.log( parsedUrl.pathname );
 		if( request.method == "GET" ){
 			var queryObj = parsedUrl.query;
 			var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue, parsedUrl);

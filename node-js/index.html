@@ -6,10 +6,21 @@
     </title>
   </head>
   <body>
+	<p>
+	Import data from file in to queue:<br>
 	<form action="/filetoque" method="post">
 		File Name : <input type="text" name="filename" value="">
 		Queue Name: <input type="text" name="queuename" value="">
 		<input type="submit" value="process">
 	</form>
+	</p>
+	<p>
+	Move data from queue1 to queue2:<br>
+	<form action="/mvquetoque" method="post">
+		Queue Name 1: <input type="text" name="queue1" value="">
+		Queue Name 2: <input type="text" name="queue2" value="">
+		<input type="submit" value="process">
+	</form>
+	</p>
   </body>
 </html>

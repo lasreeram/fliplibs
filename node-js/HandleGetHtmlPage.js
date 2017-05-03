@@ -8,13 +8,13 @@ function HandleGetHtmlPage(){
 HandleGetHtmlPage.prototype.process = function process(ctxt){
 	console.log( "process called within GetHtmlPage handler!" );
 	var filename = ctxt.parsedUrl.pathname;
-	console.log( "file name = " + filename );
+	//console.log( "file name = " + filename );
 	filename = filename.replace( "/", "" );
 	filename = filename.replace( "/", "" );
 	if( !filename.includes("html") ){
 		filename += ".html";
 	}
-	console.log( "file name = " + filename );
+	console.log( "serving file = " + filename );
 	//filename = ctxt.query.file;
 	var response = ctxt.response;
 	fs.readFile(filename, function (err, data) {

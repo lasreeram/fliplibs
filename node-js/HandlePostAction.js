@@ -1,7 +1,9 @@
 // Handler class for GET /index URL
 var fs = require('fs');
 FileToQueHandler = require("./FileToQueHandler");
+HandleMoveQueToQue = require("./HandleMoveQueToQue");
 HandlePageNotFound = require("./HandlePageNotFound");
+HandleGetJson = require("./HandleGetJson");
 
 
 function HandlePostAction(){
@@ -17,7 +19,14 @@ HandlePostAction.prototype.process = function process(ctxt){
 	if( action == 'filetoque' ){
 		var handler = new FileToQueHandler();
 		handler.process(ctxt);
-	}else{
+	}else if ( action == 'mvquetoque' ){
+		var handler = new HandleMoveQueToQue();
+		handler.process(ctxt);
+	}else if( action == 'getjson' ){
+		var handler = new HandleGetJson();
+		handler.process(ctxt);
+	}
+	else{
 		var handler = new HandlePageNotFound();
 		handler.process(ctxt);
 	}
