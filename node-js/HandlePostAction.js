@@ -4,6 +4,7 @@ FileToQueHandler = require("./FileToQueHandler");
 HandleMoveQueToQue = require("./HandleMoveQueToQue");
 HandlePageNotFound = require("./HandlePageNotFound");
 HandleGetJson = require("./HandleGetJson");
+HandleGetPromotions = require("./HandleGetPromotions");
 
 
 function HandlePostAction(){
@@ -21,6 +22,9 @@ HandlePostAction.prototype.process = function process(ctxt){
 		handler.process(ctxt);
 	}else if ( action == 'mvquetoque' ){
 		var handler = new HandleMoveQueToQue();
+		handler.process(ctxt);
+	}else if( action == 'promotions' ){
+		var handler = new HandleGetPromotions();
 		handler.process(ctxt);
 	}else if( action == 'getjson' ){
 		var handler = new HandleGetJson();
