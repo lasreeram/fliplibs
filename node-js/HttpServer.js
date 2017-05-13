@@ -1,9 +1,11 @@
 HttpServer = require("http");
 HttpServerContext = require("./HttpServerContext");
 HandleGetHtmlPage = require("./HandleGetHtmlPage");
+HandleGetImage = require("./HandleGetImage");
 HandlePostAction = require("./HandlePostAction");
 Url = require("url");
 var querystring = require('querystring');
+var portno = 8080;
 
 var MongoClient = require('mongodb').MongoClient;
 var mainHandler = function (request, response) {
@@ -20,12 +22,20 @@ var mainHandler = function (request, response) {
 		var mongodbQueue = require('mongodb-queue');
 		//console.log( JSON.stringify(queryObj) );
 		//console.log( parsedUrl.pathname );
-		if( request.method == "GET" ){
+		var filename = parsedUrl.pathname;
+		filename = filename.replace( "/", "" );
+		filename = filename.replace( "/", "" );
+		if( request.method == "GET" && filename.startsWith('image')  ){
+			var queryObj = parsedUrl.query;
+			var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue, parsedUrl);
+			var handler = new HandleGetImage();
+			handler.process(ctxt);
+		}else if( request.method == "GET" ){
 			var queryObj = parsedUrl.query;
 			var ctxt = new HttpServerContext(db, request, response, queryObj, mongodbQueue, parsedUrl);
 			var handler = new HandleGetHtmlPage();
 			handler.process(ctxt);
-		}else if ( request.method = "POST" ){
+		}else if ( request.method == "POST" ){
 			var queryData = "";
 			var queryObj = null;
 		        request.on('data', function(data) {
@@ -48,5 +58,15 @@ var mainHandler = function (request, response) {
 	});
 }
 
-HttpServer.createServer( mainHandler ).listen(8080);
-console.log("Server Running on 8080"); 
+if( process.argv.length != 3 ){
+	console.log( "node HttpServer.js portno");
+	process.exit(0);
+}
+process.argv.forEach(function (val, index, array) {
+	if( index == 2 ){
+		portno = val;
+	}
+});
+
+HttpServer.createServer( mainHandler ).listen(portno);
+console.log("Server Running on " + portno); 

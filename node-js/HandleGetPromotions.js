@@ -38,29 +38,42 @@ HandleGetPromotions.prototype.process = function process(ctxt){
 		ctxt.response.end();
 		return;
 	}
+	var major_query = '{ "major": { "$in": [' + major + '] } }'
+	var minor_query = '{ "minor": { "$in": [' + minor + '] } }'
 
 
-	var db_query_get_merchant = '{"major":"' + major + '",' + '"minor":"' + minor + '"}';
-	var json_obj1 = JSON.parse(db_query_get_merchant);
-	console.log( db_query_get_merchant );
+	var db_query_get_merchants = '{ "$and": [' + major_query + ',' + minor_query + '] }'
+	var json_obj1 = JSON.parse(db_query_get_merchants);
+	console.log( db_query_get_merchants );
 
 	var col_beacon_merchant = db.collection('beacon_merchant');
-	col_beacon_merchant.find( json_obj1 ).toArray(function( err, item ) {
+	col_beacon_merchant.find( json_obj1 ).toArray(function( err, items ) {
 		if( !err ){
 			console.log( "found merchant! " );
-			console.log( item[0] );
-			console.log( item[0].merchant_id );
+			var merchantList = "";
+			var length = items.length;
+			console.log( items );
+			console.log( "length = " + items.length );
+			for( var j = 0; j < length; j++ ){
+				console.log( items[j] );
+				console.log( items[j].merchant_id );
+				if( j == (length-1) ){
+					merchantList += '"' + items[j].merchant_id + '"';	
+				}else{
+					merchantList += '"' + items[j].merchant_id + '",';
+				}
+			}
 			var col_merchant_promotions = db.collection('merchant_promotions');
-			var db_query_get_promotions = '{ "merchant_id":"' + item[0].merchant_id+ '"}';
+			//var db_query_get_promotions = '{ "merchant_id":"' + item[0].merchant_id+ '"}';
+			var db_query_get_promotions = '{ "merchant_id": { "$in": [' + merchantList + '] } }';
 			console.log( db_query_get_promotions );
 			var json_obj2 = JSON.parse( db_query_get_promotions );
-			col_merchant_promotions.find( json_obj2 ).toArray(function( err, item ){
+			col_merchant_promotions.find( json_obj2 ).toArray(function( err, items ){
 				if( !err ){
 					console.log( "found promotion! " );
-					console.log( item );
+					console.log( items );
 					response.writeHeader(200, {"Content-Type": "application/json"});
-					console.log(item);
-					response.write( JSON.stringify(item) );
+					response.write( JSON.stringify(items) );
 					response.end();
 				}else{
 					console.log( "error finding data!" );

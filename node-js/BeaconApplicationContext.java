@@ -64,7 +64,7 @@ public class BeaconApplicationContext extends Application {
             @Override
             public void onEnteredRegion(Region region, List<Beacon> list) {
 
-                String url = "http://192.168.0.10:8080/getjson";
+                String url = "http://192.168.0.10:8080/promotions";
                 final List<Beacon> final_list = list;
 
                 StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
@@ -85,16 +85,16 @@ public class BeaconApplicationContext extends Application {
                                         data.uuid = final_list.get(0).getProximityUUID();
                                         data.minor = final_list.get(0).getMinor();
                                         data.major = final_list.get(0).getMajor();
-                                        data.restaurant = jsonarr.getJSONObject(i).getString("name");
-                                        data.cuisine = jsonarr.getJSONObject(i).getString("cuisine");
+                                        data.restaurant = jsonarr.getJSONObject(i).getString("title");
+                                        data.cuisine = jsonarr.getJSONObject(i).getString("text");
                                         myBeaconData.add(data);
                                     }
 
                                     BeaconApplicationContext ctxt = (BeaconApplicationContext) getApplicationContext();
                                     ctxt.invokeCallbacks(myBeaconData);
 
-                                    Log.e("response json", jsonObj.getString("name") + "," + jsonObj.getString("cuisine") );
-                                    showNotification(jsonObj.getString("name"), jsonObj.getString("cuisine") );
+                                    Log.e("response json", jsonObj.getString("title") + "," + jsonObj.getString("text") );
+                                    //showNotification(jsonObj.getString("title"), jsonObj.getString("text") );
                                 }catch(Exception e){
                                     e.printStackTrace();
                                 }
@@ -109,7 +109,13 @@ public class BeaconApplicationContext extends Application {
                     @Override
                     protected Map<String,String> getParams(){
                         Map<String,String> params = new HashMap<String, String>();
-                        params.put("restaurant_id","30075445");
+
+                        params.put("uuid",final_list.get(0).getProximityUUID().toString());
+                        String str = "" + final_list.get(0).getMajor();
+                        params.put("major", str);
+                        str = "" + final_list.get(0).getMinor();
+                        params.put("minor", str);
+
                         return params;
                     }
 
@@ -185,6 +191,7 @@ public class BeaconApplicationContext extends Application {
         for (BeaconActivityInterface callback : beaconCallbackList
                 ) {
             callback.beaconDataChanged(list);
+            //break;
         }
 
     }

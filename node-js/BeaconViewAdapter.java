@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import java.lang.reflect.Array;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -23,13 +24,13 @@ public class BeaconViewAdapter extends RecyclerView.Adapter<BeaconViewAdapter.Vi
     // you provide access to all the views for a data item in a view holder
     static class ViewHolderBeacon extends RecyclerView.ViewHolder {
 
-        TextView restaurantName;
-        TextView cuisine;
+        TextView title;
+        TextView text;
 
         public ViewHolderBeacon(View itemView) {
             super(itemView);
-            restaurantName = (TextView) itemView.findViewById(R.id.restaurant_name);
-            cuisine = (TextView) itemView.findViewById(R.id.cuisine);
+            title = (TextView) itemView.findViewById(R.id.title);
+            text = (TextView) itemView.findViewById(R.id.text);
         }
     }
 
@@ -44,7 +45,7 @@ public class BeaconViewAdapter extends RecyclerView.Adapter<BeaconViewAdapter.Vi
                                                                  int viewType) {
         // create a new view
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.recycler_item, parent, false);
+                .inflate(R.layout.recycler_item_2, parent, false);
         // set the view's size, margins, paddings and layout parameters
         ViewHolderBeacon vh = new ViewHolderBeacon(v);
         return vh;
@@ -56,8 +57,9 @@ public class BeaconViewAdapter extends RecyclerView.Adapter<BeaconViewAdapter.Vi
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         //holder.mTextView.setText(mBeaconDataList[position])
-        holder.restaurantName.setText(mBeaconDataList.get(position).restaurant);
-        holder.cuisine.setText(mBeaconDataList.get(position).cuisine);
+        Log.e("Beacon Adapter", "onBindVieHolder called with position = " + position );
+        holder.title.setText(mBeaconDataList.get(position).restaurant);
+        holder.text.setText(mBeaconDataList.get(position).cuisine);
     }
 
     // Return the size of your dataset (invoked by the layout manager)
@@ -73,7 +75,27 @@ public class BeaconViewAdapter extends RecyclerView.Adapter<BeaconViewAdapter.Vi
 
     public void setBeaconDataList(List<BeaconData> dataList ){
         Log.e("beacon adapter", "set data list called count = " + dataList.size());
-        mBeaconDataList = dataList;
+
+        if( mBeaconDataList == null ) {
+            mBeaconDataList = new ArrayList<BeaconData>();
+
+            //for(int i = 0; i < 5; i++ ) {
+            //    BeaconData dat = new BeaconData();
+            //    dat.cuisine = "cusine " + i;
+            //    dat.restaurant = "restaurant " + i;
+            //    mBeaconDataList.add(dat);
+            //}
+            for (int i = 0; i < dataList.size(); i++) {
+                mBeaconDataList.add(dataList.get(i));
+            }
+        }else{
+            mBeaconDataList.clear();
+            for (int i = 0; i < dataList.size(); i++) {
+                mBeaconDataList.add(dataList.get(i));
+            }
+        }
+
+
     }
 
 }

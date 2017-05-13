@@ -14,6 +14,9 @@ public class MainActivity extends AppCompatActivity{
     private RecyclerView mRecyclerView;
     private BeaconViewAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
+    private boolean callbackRegistered = false;
+    //private DividerItemDecoration mDividerItemDecoration;
+
 
 
     @Override
@@ -24,6 +27,7 @@ public class MainActivity extends AppCompatActivity{
         BeaconApplicationContext beaconCtxt = new BeaconApplicationContext();
 
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
+        mRecyclerView.setItemViewCacheSize(0);
 
         // use this setting to improve performance if you know that changes
         // in content do not change the layout size of the RecyclerView
@@ -38,6 +42,10 @@ public class MainActivity extends AppCompatActivity{
         mAdapter = new BeaconViewAdapter(null);
         mRecyclerView.setAdapter(mAdapter);
 
+        //mDividerItemDecoration = new DividerItemDecoration(mRecyclerView.getContext(),
+          //      mLayoutManager.getOrientation());
+        //mRecyclerView.addItemDecoration(mDividerItemDecoration);
+
         BeaconCallback beaconCallback = new BeaconCallback(mAdapter);
         Log.e("create main activity", "registering callback");
         beaconCtxt.registerBeaconActivityCallback(beaconCallback);
@@ -46,11 +54,14 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onResume() {
         super.onResume();
-        BeaconCallback beaconCallback = new BeaconCallback(mAdapter);
-        Log.e("resume main activity", "registering callback");
-        BeaconApplicationContext beaconCtxt = (BeaconApplicationContext) getApplicationContext();
-        beaconCtxt.registerBeaconActivityCallback(beaconCallback);
-        SystemRequirementsChecker.checkWithDefaultDialogs(this);
+        if( callbackRegistered == false ) {
+            BeaconCallback beaconCallback = new BeaconCallback(mAdapter);
+            Log.e("resume main activity", "registering callback");
+            BeaconApplicationContext beaconCtxt = (BeaconApplicationContext) getApplicationContext();
+            beaconCtxt.registerBeaconActivityCallback(beaconCallback);
+            SystemRequirementsChecker.checkWithDefaultDialogs(this);
+            callbackRegistered = true;
+        }
     }
 
 
