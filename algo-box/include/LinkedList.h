@@ -3,12 +3,13 @@
 
 #include <assert.h>
 #include <math.h>
+#include <ArrayList.h>
 //based on opendatastructures.org by Pat Morin
 
 //Linked list are list interfaces based on pointer-based data structures rather than arrays
 
-//Disadvantage - get(i), set(i) are no longer O(1) but O(min(i, n-i))
-//Advantage - add, remove a node in constant time
+//Disadvantage over arrays - get(i), set(i) are no longer O(1) but O(min(i, n-i))
+//Advantage over arrays - add, remove a node in O(1) over an array which requires shifting. Ofcourse this requires the pointer to the node to be saved.
 
 namespace AlgoBox{
 
@@ -28,7 +29,7 @@ Singly linked list provide a limited set of operations but all in O(1) time
 push, pop, addToQueue, getNext
 
 These operations operate on the head or tail of the list only.
-There traversing of the list as it would take O(n) time
+Inserting at ith location or get(i) will require traversing of the list and would take O(n) time
 */
 
 template <typename T> class SinglyLinkedList{
@@ -93,17 +94,6 @@ template <typename T> class SinglyLinkedList{
 		int _used;
 };
 
-template <typename T> class NodeD {
-	public:
-		T x;
-		NodeD* next;
-		NodeD* prev;
-		NodeD( T x0 ){
-			x = x0;
-			next = NULL;
-		}
-};
-
 /*
 all operations (get, set, add, remove) run in O(min(i, used-i). All operations require getNode.
 which takes O(min(i,used-1)).
@@ -115,7 +105,28 @@ Why the dummy node?
 Using a dummy node avoids a lot of special cases required when using _head and _tail pointers.
 With dummy node _head is no longer required. The _used value will tell us if the dummy is the only node in the chain.
 
+Contrast with arrays.
+Arrays implement getNode in O(1) time and insertion or deletion require O(n)
+Doubly linked list implement getNode in O(n) time and insertion, deletion in O(1). So an application that can cache the node pointers effectively can avoid getNode and gets all operations in constant time.
+
+Using a Doubly linked list along with USet
+The node pointers can be stored in a USet(Unordered set) by their values. The node at ith location can be quickly (O(log)?) found using an USet and all other operations can be done in constant time
+
 */
+
+template <typename T> class NodeD {
+	public:
+		T x;
+		NodeD* next;
+		NodeD* prev;
+		NodeD(){
+			next = NULL;
+		}
+		NodeD( T x0 ){
+			x = x0;
+			next = NULL;
+		}
+};
 
 template <typename T> class DoublyLinkedList {
 	public:
@@ -176,11 +187,11 @@ template <typename T> class DoublyLinkedList {
 		//
 		//this function allows storing of the pointer in an external Data structure.
 		//
-		NodeD<T>* getNode(i){
+		NodeD<T>* getNode(int i){
 			if( _used == 0 )
-				throw debug_lib::Exception( "SinglyLinkedList:getNode no more elements" );
+				throw debug_lib::Exception( "DoublyLinkedList:getNode no more elements" );
 			if( i+1 > _used )
-				throw debug_lib::Exception( "SinglyLinkedList:getNode no such index i=" + i );
+				throw debug_lib::Exception( "DoublyLinkedList:getNode no such index i=" + i );
 				
 			NodeD<T>* ptr;
 			if( i < _used/2 ){
@@ -203,23 +214,45 @@ template <typename T> class DoublyLinkedList {
 		NodeD<T> _dummy;
 };
 
-template <typename T> class NodeB {
+
+// - Space efficient linked list - a doubly linked list of blocks instead of individual elements
+// - SE Linked list has a very tight restriction on the number of elements. Each block contains at-least (b-1) and atmost (b+1) elements
+// - Wasted Space is of the order of O(b + n/b) - i.e. the last block is partially filled and all other blocks have atleast b-1 elements
+// - By choosing b to be square root of n we can keep the space wasted to O(n^0.5)
+// - 
+template <typename T> class NodeSpaceEfficient {
 	public:
-		NodeB<T>* next;
-		NodeB<T>* prev;
-		BDQueue<T> _blockdq;
-		NodeB(){
+		NodeSpaceEfficient<T>* next;
+		NodeSpaceEfficient<T>* prev;
+		BDeQueue<T> _blockdq;
+		NodeSpaceEfficient(){
 		}
-		NodeB(int b):_blockdq(b){
+		NodeSpaceEfficient(int b):_blockdq(b){
+		}
+
+		int getUsed(){
+			return _blockdq.getUsed();
+		}
+
+		void set(int i, T x){
+			_blockdq.set(i, x);
+		}
+
+		void insert(int i, T x){
+			_blockdq.set(i, x);
+		}
+
+		void add(T x){
+			_blockdq.add(x);
 		}
 };
 
 template <typename T> class Location {
 	public:
-		NodeB* _u;
+		NodeSpaceEfficient<T>* _u;
 		int j;
 		Location(){}
-		Location(NodeB<T>* u, int j){
+		Location(NodeSpaceEfficient<T>* u, int j){
 			this->u = u;
 			this->j = j;
 		}
@@ -229,15 +262,24 @@ template <typename T> class Location {
 template <typename T> class SpaceEfficientLinkedList {
 	public:
 
-		SpaceEfficientLinkedList( int blocks ){
-			_sizeOfBLocks = blocks;
+		SpaceEfficientLinkedList( int blockSize ){
+			_numBlocks = 0;
+			_blockSize = blockSize;
 			_used = 0;
+		}
+
+		T getFirst(){
+			return get(0);
 		}
 
 		T get(int i){
 			Location<T> loc;
 			getLocation(i, loc);
 			return loc.u->_blockdq.get(loc.j);
+		}
+
+		T setFirst(T x){
+			return set(0, x);
 		}
 
 		T set(int i, T x){
@@ -248,97 +290,108 @@ template <typename T> class SpaceEfficientLinkedList {
 			return y;
 		}
 
-		//only exposed so that can be used with Node* from an external DS. 
-		//needs to be reviewed
-		NodeB<T>* addBefore(NodeB<T>* w, T x){
-			NodeB<T>* u = new NodeB<T>(_numBlocks);
-			u->x = x;
-			u->prev = w->prev;
-			u->next = w;
-			u->next->prev = u;
-			u->prev->next = u;
-			_used++;
-			
-			return u;
-		}
-
 		//Add to the Last
 		void addLast(T x){
-			Node<B>* last = _dummy.prev;
-			if( last == &_dummy ){
-				addBefore(&_dummy, x);
-			}else if ( last->getSize() == b+1 ){
-				addBefore(&_dummy, x);
-			}else{
-				last->_blockdq.addLast(x);
-				_used++;
+			NodeSpaceEfficient<T>* lastBlock = _dummy.prev;
+			if( lastBlock == &_dummy ){
+				lastBlock = addNewBlockBefore(&_dummy);
+			}else if ( last->getUsed() == _blockSize+1 ){ //atmost b-1 - block is full
+				lastBlock = addNewBlockBefore(&_dummy);
 			}
+			lastBlock->_blockdq.addLast(x);
+			_used++;
 		}
 
 
 		void add(int i, T x){
-			if( i == _used ){
-				addLast(x);
-				return;
+			if( i >= _used || i < 0 ){
+				throw debug_lib::Exception( "SpaceEfficientLinkedList:index out of bounds:" + i );
 			}
 
-			Location loc;
+			Location<T> loc;
 			getLocation(i, loc);
-			NodeD<T>* u = loc.u;
+			NodeSpaceEfficient<T>* candidate = loc.u;
 
 			int r = 0;
-			//Look for a node that has space for the new element
-			//Limit the search by _blockSize steps (refer analysis)
-			//If can't find within _blockSize steps make space
-			while( r < _blockSize && u != &_dummy && u->_blockdq.size() == b+1 ){
-				u = u->next;
+			//"Gotcha":code to ensure that at all times - All blocks except the last block, have atleast (blocksize-1) elements
+
+			//Look for a candidate that has less than _blocksize+1 elements. It must be either the last block or 
+			//some intermediate block that has (blocksize-1) or blocksize 
+
+			//Restrict search within _blockSize steps
+			while( r < _blockSize && u != &_dummy && u->_blockdq.size() == _blockSize+1 ){
+				candidate = candidate->next;
 				r++;
 			}
 
-			if( r == _blockSize ){ //Need to make space
-				spread(loc.u);
-				u = loc.u;
-			}else if( u == &_dummy ){ //the list is empty. Add before dummy
-				addBefore(&_dummy, x);
+
+			if( u == &_dummy ){ //Case 1 - Could not find candidate block, ran out of blocks and all blocks are full.
+				candidate = addNewBlockBefore(&_dummy);
+
+				//Shift all elements until loc.u block to make space
+				while( candidate != loc.u ){
+					candidate->_blockdq.add(0, candidate->prev->_blockdq.remove(candidate->prev->_blockdq.getSize()-1));
+					candidate = candidate->prev;
+				}
+			}else if( r < _blockSize ){ //Case 2 - Candidate block is within _blockSize steps
+
+				//Shift all elements until loc.u block to make space
+				while( candidate != loc.u ){
+					//adding an element to 0th position of blockdq causes internal shifting within blockdq
+					candidate->_blockdq.add(0, candidate->prev->_blockdq.remove(candidate->prev->_blockdq.getSize()-1));
+					candidate = candidate->prev;
+				}
+				candidate->_blockdq.add(loc.j, x);
+			}else //if( r == _blockSize ){  Case 3 - All blocks are of size _blockSize+1 within _blockSize steps.
+
+				spread(loc.u); // "Gotcha": "b blocks of each (b+1) size" are spread to "(b+1) blocks of each size b"
+				candidate = loc.u;
+				candidate->_blockdq.add(loc.j, x); //no shifting - thanks to spread, candidate is now of size=b
 			}
 
-			
-			while( u != loc.u ){
-				u->_blockdq.add(0, u->prev->_blockdq.remove(u->prev->_blockdq.size()-1));
-				u = u->prev;
-			}
-
-			u->_blockdq.add(loc.j, x);
 			_used++;
 		}
 
 
 		T remove(int i){
-			Location loc;
+			Location<T> loc;
 			getLocation(i, loc);
 
 			T y = loc.u->_blockdq.get(loc.j);
-			NodeD<T>* u = loc.u;
+			NodeSpaceEfficient<T>* candidate = loc.u;
+			//"Gotcha":code to ensure that at all times - All blocks except the last block, have atleast (blocksize-1) elements
 
+			//Look for a candidate that has more than (b-1) elements
 			int r = 0;
-			while( r < _blockSize && u != &_dummy &&  u->_blockdq.size() == b-1 ){
-				u = u->next;
+			while( r < _blockSize && candidate != &_dummy &&  candidate->_blockdq.size() == _blockSize-1 ){
+				candidate = candidate->next;
 				r++;
 			}
 
-			if( r == _blockSize ){
+			NodeSpaceEfficient<T>* blockPtr = NULL;
+			//Case 1 and 2 - found a block within r < _blockSize.
+			//Note that in the case of candidate==dummy, the last block can have less than (b-1) elements without 
+			//violating the invariant
+			if( candidate == &_dummy || r < _blockSize ){ 
+				blockPtr = loc.u;
+				blockPtr->_blockdq.remove(loc.j);
+				while( blockPtr->_blockdq.getSize() < _numBlocks-1 && blockPtr->next != &_dummy ){
+					blockPtr->_blockdq.add(blockPtr->next->_blockdq.remove(0));
+					blockPtr = blockPtr->next;
+				}
+			}else{ //r == _blockSize
 				gather(loc.u);
+				blockPtr = loc.u;
+				blockPtr->_blockdq.remove(loc.j);
+				while( blockPtr->_blockdq.getSize() < _numBlocks-1 && blockPtr->next != &_dummy ){
+					blockPtr->_blockdq.add(blockPtr->next->_blockdq.remove(0));
+					blockPtr = blockPtr->next;
+				}
 			}
 
-			u = loc.u;
-			u->_blockdq.remove(loc.j);
-			while( u->_blockdq.getSize() < b-1 && u->next != &_dummy ){
-				u->_blockdq.add(u->next->_blockdq.remove(0));
-				u = u->next;
-			}
-
-			if( u->_blockdq.getSize() == 0 )
-				remove(u);
+			//if in the process of shifting the last block is empty remove it
+			if( blockPtr->_blockdq.getSize() == 0 )
+				remove(blockPtr);
 
 			_used--;
 			return y;
@@ -349,50 +402,62 @@ template <typename T> class SpaceEfficientLinkedList {
 	private:
 		int _used;
 		int _blockSize;
-		NodeB<T> _dummy;
+		NodeSpaceEfficient<T> _dummy;
+		int _numBlocks;
 
-		void getLocation(int i, Location<T>& ell){
+		void getLocation(int i, Location<T>& loc){
 			if( i < _used/2){
-				NodeB<T>* u = _dummy.next;
+				NodeSpaceEfficient<T>* u = _dummy.next;
 				while( i >= u->_blockdq.getSize() ){
 					i -= u->_blockdq.getSize();
 					u = u->next;
 				}
-				ell.u = u;
-				ell.j = i;
+				loc.u = u;
+				loc.j = i;
 			} else{
-				NodeB<T>* u = &_dummy;
+				NodeSpaceEfficient<T>* u = &_dummy;
 				int idx = _used;
 				while ( i < idx ){
 					u = u->prev;
 					idx -= u->_blockdq.getSize();
 				}
-				ell.u = u;
-				ell.j = i - idx;
+				loc.u = u;
+				loc.j = i - idx;
 			}
 		}
 
-		void spread(NodeB<T>* u){
-			NodeB<T>* w = u;
+
+		NodeSpaceEfficient<T>* addNewBlockBefore(NodeSpaceEfficient<T>* w){
+			NodeSpaceEfficient<T>* u = new NodeSpaceEfficient<T>(_blockSize+1); //additional 1 space for spreading and gathering
+			u->prev = w->prev;
+			u->next = w;
+			u->next->prev = u;
+			u->prev->next = u;
+			_numBlocks++;
+			return u;
+		}
+
+		void spread(NodeSpaceEfficient<T>* u){
+			NodeSpaceEfficient<T>* w = u;
 			for( int j = 0; j < _blockSize; j++ ){
-				w = w-next;
+				w = w->next;
 			}
 
 			w = addBefore(w);
 			while( w != u ){
-				while( w->_blockdq.getSize() < b ){
+				while( w->_blockdq.getSize() < _numBlocks ){
 					w->_blockdq.add( 0, w->prev->_blockdq.remove(w->prev->_blockdq.getSize()-1));
 				}
 				w = w->prev;
 			}
 		}
 
-		void gather( Node* u ){
-			NodeB<T>* w = u;
+		void gather( NodeSpaceEfficient<T>* u ){
+			NodeSpaceEfficient<T>* w = u;
 			for( int j = 0; j < _blockSize-1; j++ ){
-				while( w->_blockdq.getSize() < b )
+				while( w->_blockdq.getSize() < _numBlocks )
 					w->_blockdq.add( w->next->_blockdq.remove(0));
-				w = w-next;
+				w = w->next;
 			}
 			remove(w);
 		}

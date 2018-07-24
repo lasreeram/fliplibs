@@ -268,7 +268,7 @@ template <typename T> class ArrayDeQueue{
 			return _used;
 		}
 
-	private:
+	protected:
 		Array<T> _arr;
 		int _start;
 		int _used;
@@ -527,25 +527,32 @@ template <typename T> class RootishArrayStack{
 template <typename T> class BDeQueue : public ArrayDeQueue<T> {
 	public:
 		BDeQueue(int b){
-			_used = 0;
-			j = 0;
+			ArrayDeQueue<T>::_start = 0;
+			ArrayDeQueue<T>::_used = 0;
 			Array<int> z(b+1);
-			a = z;
+			ArrayDeQueue<T>::_arr = z;
 		}
 
 		~BDeQueue(){
 		}
 
-		void add(int i, T x){
+		void insert(int i, T x){
 			ArrayDeQueue<T>::add(i, x);
 		}
 
+		void set(int i, T x){
+			ArrayDeQueue<T>::set(i, x);
+		}
+
 		void add(T x){
-			ArrayDeQueue<T>::add(getsize(), x);
+			ArrayDeQueue<T>::addLast(x);
 			return;
 		}
 
 		void resize(){}
+
+		int getUsed(){ return _used; }
+
 };
 
 }

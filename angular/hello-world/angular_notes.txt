@@ -1,0 +1,424 @@
+Angular notes
+-------------
+Q. What is bootstraping?
+An NgModule describes how the application parts fit together. Every application has at least one Angular module, the root module that you bootstrap to launch the application. By convention, it is usually called AppModule.
+
+
+Q. What is an angular Module?
+An angular module is a way to organize all the parts of an application i.e. import external modules, components, services. The app.module is the root module and also has a bootstrap section that identifies the root component.
+
+Q. What external modules does app.module require?
+import { BrowserModule } from '@angular/platform-browser'; //BrowserModule provides services that are essential to launch/run a browser app
+import { NgModule } from '@angular/core';
+import { FormsModule } from '@angular/forms'; // <-- NgModel lives here
+
+
+Q. What are NgModules?
+The @NgModule decorator identifies AppModule as an NgModule class. @NgModule takes a metadata object that tells Angular how to compile and launch the application.
+
+@NgModule({
+  declarations: [
+    AppComponent
+  ],
+  imports: [
+    BrowserModule
+  ],
+  providers: [],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+
+
+Q.What is the declarations array?
+The module's declarations array tells Angular which components belong to that module. As you create more components, add them to declarations. A declaration belongs to exactly one NgModule
+
+The declared classes are visible within the module but invisible to components in a different module unless they are exported from this module and the other module imports this one.
+
+
+Q. What is the imports array?
+Imports array allows an NgModule to import other NgModules
+
+
+What is a declarable?
+Declarables are the class types—components, directives, and pipes—that you can add to a module's declarations list. They're the only classes that you can add to declarations.
+
+
+Q. What are services?
+Components should not fetch data directly. They should focus on presenting data and delegate data access to a service.
+
+Q. What are directives?
+Directives allow you to attach behavior to elements in the DOM..
+
+There are three kinds of directives in Angular:
+    Components—directives with a template.  (what is this?)
+    Structural directives—change the DOM layout by adding and removing DOM elements.
+    Attribute directives—change the appearance or behavior of an element, component, or another directive.
+
+
+
+Q. What are pipes?
+Every application starts out with what seems like a simple task: get data, transform them, and show them to users. Getting data could be as simple as creating a local variable or as complex as streaming data over a WebSocket.
+
+Once data arrive, you could push their raw toString values directly to the view, but that rarely makes for a good user experience. For example, in most use cases, users prefer to see a date in a simple format like April 15, 1988 rather than the raw string format Fri Apr 15 1988 00:00:00 GMT-0700 (Pacific Daylight Time).
+
+Clearly, some values benefit from a bit of editing. You may notice that you desire many of the same transformations repeatedly, both within and across many applications. You can almost think of them as styles. In fact, you might like to apply them in your HTML templates as you do styles.
+
+Q. What are pure pipes and impure pipes?
+Pipes are by default pure and to declare an impure pipe, the flag pure needs to be set to false.
+
+Angular executes a pure pipe only when it detects a pure change to the input value. A pure change is either a change to a primitive input value (String, Number, Boolean, Symbol) or a changed object reference (Date, Array, Function, Object).
+
+This may seem restrictive but it's also fast. An object reference check is fast—much faster than a deep check for differences—so Angular can quickly determine if it can skip both the pipe execution and a view update.
+
+For this reason, a pure pipe is preferable when you can live with the change detection strategy. When you can't, you can use the impure pipe.
+
+Angular executes an impure pipe during every component change detection cycle. An impure pipe is called often, as often as every keystroke or mouse-move
+With that concern in mind, implement an impure pipe with great care. An expensive, long-running pipe could destroy the user experience
+
+
+Q. How to use a component, pipe or directive within a NgModule?
+To use a directive, component, or pipe in a module, you must do a few things:
+
+    Export it from the file where you wrote it.
+    Import it into the appropriate module.
+    Declare it in the @NgModule declarations array.
+
+
+Q. What is a selector?
+css selector that identifies this component in a template
+
+
+Q. How to implement custom Pipes?
+
+
+Q. How to chain pipes?
+
+
+Q. What is an Observable?
+Both Promises and Observables provide us with abstractions that help us deal with the asynchronous nature of our applications. However, there are important differences between the two:
+
+    Observables can define both the setup and teardown aspects of asynchronous behavior.
+    Observables are cancellable.
+
+Moreover, Observables can be retried using one of the retry operators provided by the API, such as retry and retryWhen. On the other hand, Promises require the caller to have access to the original function that returned the promise in order to have a retry capability.
+    
+    
+    Observables vs Promise
+    - A promise cannot be retried while an observable can be. In this sense an observable is a Promise + "the method to retry/cancel the operation". YOu can unsubscribe an observable, this cancels the observer.
+    - An obervable can be converted into a promise. No the other way around.
+    - An observable is like a stream that can be filtered, mapped e.t.c where as a Promise is a done deal. That is a 'promise' emits only one value while an observable emits a series of values over a given time.
+    - Pomise is strict whereas an Observable is lazy. A Promise starts its work when it is created. An observable starts its work only when it is subscribed.
+    
+    
+Q. How do you retry/cancel an observable?
+An observable can be cancelled using the unsubscribe method. An observable's subscribe call retuns a subscription object which can be uesd to call unsubscribe. The subscription object also has  a closed flag that can be used in *ngIf for components within their html.
+
+- The retry method (Rxjs method) on an observable returns an Observable that is set with retry onError.
+- The repeat method on an observable returns an Observable that is set with repeat onCompleted
+- The retryWhen method takes an error->{} that is called onError and can choose to return an Observable or throw an Error
+
+Q. What is Rxjs?
+Observable is part of RxJs(?)
+    
+
+Q. Why you need to be careful with impure pipes?
+Remember that impure pipes are called every few milliseconds.
+
+If you are using a pipe to make Http requests, If you're not careful, this pipe will punish the server with requests
+
+
+Q. What is a lifecycle hook?
+
+
+Q. What is a two way binding?
+Two way binding is identified in angular using the keyword [(ngModel)]. This can link an input box to an object's member within angular.
+
+For example, entering something in an input box can affect the value of a text which is rendered from a data object's member and vice-versa.
+
+
+Q. What is an async pipe?
+The Angular AsyncPipe is an interesting example of an impure pipe. The AsyncPipe accepts a Promise or Observable as input and subscribes to the input automatically, eventually returning the emitted values.
+
+The AsyncPipe is also stateful. The pipe maintains a subscription to the input Observable and keeps delivering values from that Observable as they arrive. (how to change the subscription?)
+
+The Async pipe saves boilerplate in the component code. The component doesn't have to subscribe to the async data source, extract the resolved values and expose them for binding, and have to unsubscribe when it's destroyed (a potent source of memory leaks).
+
+
+
+
+Q. What is a promise?
+A promise is an object that may produce a single value some time in the future: either a resolved value, or a reason that it’s not resolved (e.g., a network error occurred). A promise may be in one of 3 possible states: fulfilled, rejected, or pending. Promise users can attach callbacks to handle the fulfilled value or the reason for rejection.
+
+Promises are eager, meaning that a promise will start doing whatever task you give it as soon as the promise constructor is invoked. If you need lazy, check out observables or tasks.
+
+A promise represents the eventual result of an asynchronous operation. It is a placeholder into which the successful result value or reason for failure will materialize.
+
+Promises provide a simpler alternative for executing, composing, and managing asynchronous operations when compared to traditional callback-based approaches. They also allow you to handle asynchronous errors using approaches that are similar to synchronous try/catch
+
+
+Imagine you are doing some async operation using a library code. The library code can open itself to its user code by two means - A callback that is passed in as one of the arguments and a promise that is returned to the using code. The promise takes two callback arguments - one for resolve and the other for reject. A promise can represent an async task that has already completed, because from the time the promise is returned (and passed around, because a promise is a first class object), it has time to complete. By the time the promise is used it could be fulfilled or rejected instead of pending.
+
+
+A promise can be in one of 3 states:
+
+    Pending - the promise’s outcome hasn’t yet been determined, because the asynchronous operation that will produce its result hasn’t completed yet.
+    Fulfilled - the asynchronous operation has completed, and the promise has a value.
+    Rejected - the asynchronous operation failed, and the promise will never be fulfilled. In the rejected state, a promise has a reason that indicates why the operation failed.
+
+When a promise is pending, it can transition to the fulfilled or rejected state. Once a promise is fulfilled or rejected, however, it will never transition to any other state, and its value or failure reason will not change.
+
+
+var greetingPromise = asyncHello();
+greetingPromise.then(function (greeting) {
+    console.log(greeting);    // 'hello world’
+}, function (error) {
+    console.error('uh oh: ', error);   // 'uh oh: something bad happened’
+});
+
+Q. Sequencing Async operations.
+A function passed to then can also return another promise. This allows asynchronous operations to be chained together, so that they are guaranteed to happen in the correct order. For example, if addExclamation is asynchronous (possibly needing to access another web service) and returns a promise for the new greeting:
+
+var greetingPromise = sayHello();
+greetingPromise
+    .then(addExclamation)
+    .then(function (greeting) {
+        console.log(greeting);    // 'hello world!!!!’
+    }, function(error) {
+        console.error('uh oh: ', error);   // 'uh oh: something bad happened’
+    });
+    
+
+
+
+
+Basics: Files and purpose
+
+Q. What is the component file?
+A component is a combination of html, css and javascript. The html can contain angular elements such as *ngFor (loops), pipes, directives(?) e.t.c.
+Components are the fundamental building blocks of Angular applications. They display data on the screen, listen for user input, and take action based on that input.
+
+Angular app has a root componenent (selector='app-root'). All the other components are composed within the root.
+
+
+Q. What is a app/module.ts?
+module.ts is an @NgModule that is used to bootstrap the AppComponent. It can include other modules.
+
+
+Q. Other locations.
+assets/* - images 
+environments/* - 
+index.html - this contains the <app-root></app-root>.
+karma.conf.js - unit test configuration
+main.ts - main entry point of your app
+polyfills.ts - cross browser support
+tslint.ts - you can run "ng lint" to keep your code consistent.
+styles.css - global styles
+node-modules/* - all dependencies contained in package.json from node.js
+
+
+Q. What is an Input decorator for a component? Can it have multiple inputs?
+It is the way a re-usable component can receive a parameter. 
+
+
+Q. What is property binding?
+Property binding is the way by which data is passed to a re-usable component.
+
+
+Q. How does dependency injection work?
+A service is an Injectable. A service is decorated using the Injectable decorater
+
+@Injectable({
+  providedIn: 'root'
+})
+
+This means it is provided at the root (? - all angular application). Alternately you can declare the provider at a specific component or at the module level.
+
+
+
+
+Q. How to troubleshoot an angular application?
+
+
+Q. What are the lifecycle method onNgInit?
+onNgInit is called by angular after the component is constructed. The component must implment the OnInit interface
+
+export class HeroesComponent implements OnInit {
+ 
+}
+Reserve the constructor for simple initialization such as wiring constructor parameters to properties. The constructor shouldn't do anything. It certainly shouldn't call a function that makes HTTP requests to a remote server as a real data service would. 
+
+
+Q. What is the difference between map and flatmap?
+Both map and flatMap can be applied to a Stream<T> and they both return a Stream<R>. The difference is that the map operation produces one output value for each input value, whereas the flatMap operation produces an arbitrary number (zero or more) values for each input value.
+
+
+Q. What concatmap?
+Concatmap can concatenate two streams of observables.
+
+
+Q. Signature of the retryWhen observable (RxJs function)?
+
+retryWhen(
+
+Func1<
+     ? super Observable<? extends java.lang.Throwable>,  ? extends Observable<?>
+> 
+
+notificationHandler
+)
+
+Func1 is an interface that takes in two template arguments and returns a type. It has a call method. Anonymous functions that take a single argument are of type Func1. 
+
+Input:
+? super Observable<? extends java.lang.Throwable> - Any type T that is a super type of Observable<S> where S extends java.lang.Throwable
+
+Output:
+A type U that extends Observable<Any>   
+
+
+Q. Why does a service need to be public when injecting into a component's constructor some times?
+A service needs to be public so that it can be used in the Angular HTML code.
+
+
+Q. What is the 'of' function of Rxjs?
+It is a function that converts an ordinary list of types into an observable<type>
+
+
+Q. What is service-in-service?
+Service-in-service is a pattern where a service is injected into another service.
+
+
+Q. What is angular dependency injection? What is a service, provider and an injectable?
+A service usually needs to be provided to a component.
+A service if registered as an injectable can be provided to a component
+A provider is the context where the injectable is provided
+
+Angular provides a way to inject dependencies into components. An injectable (denoted by @Injectable) is a service that angular provides to components if they import and add to their constructors. You can choose the point of injection by specifying 	
+
+Dependency Injection (DI) is a way to create objects that depend upon other objects. A Dependency Injection system supplies the dependent objects (called the dependencies) when it creates an instance of an object.
+
+
+Q. What is the @Injectable decorator in Angular?
+The @Injectable decorator identifies services and other classes that are intended to be injected. It can also be used to configure a provider for those services.
+
+Q. What are providers in Angular DI?
+Providers tell the injector how to provide the service. Providers configure how and when the services are provided.
+
+A service provider provides the concrete, runtime version of a dependency value. The injector relies on providers to create instances of the services that the injector injects into components, directives, pipes, and other services.
+
+Q. What is the @Injectable provider?
+One of the Providers is the @Injectable decorator. The root injector is available to the entire application.
+Example:
+An injectable can  be provided at the root injector
+
+@Injectable({
+  providedIn: 'root',
+})
+
+Q. What is the @NgModule provider?
+In the app.module.ts we can use an array of providers as below
+
+providers: [
+    UserService,
+    {provide: APP_CONFIG, userValue: HERO_DI_CONFIG}
+]
+
+APP_CONFIG is a key-value pair that can be injected.
+
+
+Q. What is the @Component provider?
+A service can also be provided at the Component level - using the providers key word under the @Component decorator
+
+
+@Component({
+    selector: 'app-heros',
+    providers: [ HeroService ],
+    template: `....`
+ })
+ 
+ 
+ Q.Which of the providers option is preferred - @Injectable, @NgModule or @Component?
+ 
+ The choices lead to differences in the final bundle size, service scope and service lifetime
+ 
+ @Injectable - tree-shaking that removes services not used by your app. Leads to smaller bundle sizes.
+ @Component - a separate instance for each component. When the component instance is destroyed so is the service instance. 
+  
+ 
+ 
+Q.What is lazy loading?
+ 
+ 
+
+Q.What is typescript?
+TypeScript is an open-source programming language developed and maintained by Microsoft. It is a strict syntactical superset of JavaScript, and adds optional static typing to the language.
+
+
+Q.What are factory providers?
+When a service requires a dependency (flag or object) that is not available until the time of creation of the service (by the component) then the pattern to use is of a 'factory provider'
+
+For example: HeroService depends on a flag that indicates if user is authorized to use the service or not, then in hero.service.ts the constructor has these as parameters
+
+constructor(
+  private logger: Logger,
+  private isAuthorized: boolean) { }
+  
+Within hero.service.provider.ts has - note we export the heroServiceProvider
+
+let heroServiceFactory = (logger: Logger, userService: UserService) => {
+  return new HeroService(logger, userService.user.isAuthorized);
+};
+export let heroServiceProvider =
+  { provide: HeroService,
+    useFactory: heroServiceFactory,
+    deps: [Logger, UserService]
+  };
+
+Within the component that uses the HeroService now we instead use the Factory
+
+import { Component }          from '@angular/core';
+import { heroServiceProvider } from './hero.service.provider';
+
+@Component({
+  selector: 'app-heroes',
+  providers: [ heroServiceProvider ],
+  template: `
+    <h2>Heroes</h2>
+    <app-hero-list></app-hero-list>
+  `
+})
+export class HeroesComponent { }
+
+
+
+Q. What is tree-shaking?
+Tree shaking is the ability to remove code that is not referenced in an application from the final bundle. Tree-shakable providers give Angular the ability to remove services that are not used in your application from the final output. This significantly reduces the size of your bundles.
+
+Tree shaking is possible only if the injector is contained within a serivce as below
+
+@Injectable({
+  providedIn: 'root',
+})
+export class Service {
+}
+
+
+Q. Are the services singletons?
+Services are singletons within the scope of an injector. There is at most one instance of a service in a given injector.
+There is only one root injector, if a service is injected at the root injector, there is atmost one instance of the service.
+
+
+Q. What is a hierarchical injector system?
+Angular has a Hierarchical Dependency Injection system. There is actually a tree of injectors that parallel an application's component tree. You can reconfigure the injectors at any level of that componen
+
+
+Q. What is the advantage of dependency injection?
+- Loosely coupled dependencies
+- Easy testing using mock services
+
+
+Q. What is the angular best practice with regards to routing?
+An Angular best practice is to load and configure the router in a separate, top-level module that is dedicated to routing and imported by the root AppModule.
+
+
+
