@@ -3,6 +3,7 @@
 #include <openssl/err.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/uio.h>
 
 namespace sockets_lib{
 
@@ -732,11 +733,13 @@ namespace sockets_lib{
 		return rc;
 	}
 	
+	//shutdown is synchronize the close with the end point. This will return an EOF for all processes that read fromt he socket and a SIGPIPE for a processes that write
 	void TCPSocket::shutdown(int type){
 		if ( ::shutdown( _socket, type ) )
 			debug_lib::throw_error( "shutdown failed " );
 	}
 
+	//close is one side close of the socket the other side is still open
 	void TCPSocket::close(){
 		if ( ::close(_socket) )
 			debug_lib::throw_error( "close failed" );

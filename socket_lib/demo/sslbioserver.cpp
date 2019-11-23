@@ -44,7 +44,7 @@ int main(int argc, char** argv){
 
 		do{
 			TCPSocket* acceptsock = sock->accept();
-			SSLBioImpl* sslObj = new SSLBioImpl( true, "/home/hduser/ssl/server" );
+			SSLBioImpl* sslObj = new SSLBioImpl( true, "/home/sreeram/ssl/server" );
 			sslObj->doHandshake( acceptsock, true );
 			service( acceptsock, sslObj );
 			sslObj->shutdown();

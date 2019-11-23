@@ -551,7 +551,7 @@ template <typename T> class BDeQueue : public ArrayDeQueue<T> {
 
 		void resize(){}
 
-		int getUsed(){ return _used; }
+		int getUsed(){ return ArrayDeQueue<T>::_used; }
 
 };
 

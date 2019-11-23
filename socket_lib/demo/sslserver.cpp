@@ -36,7 +36,7 @@ int main(int argc, char** argv){
 
 		do{
 			TCPSocket* acceptsock = sock->accept();
-			SSLServerSocket* sslsock = new SSLServerSocket( (TCPAcceptSocket*) acceptsock, "/home/hduser/ssl/server" ); 
+			SSLServerSocket* sslsock = new SSLServerSocket( (TCPAcceptSocket*) acceptsock, "/home/sreeram/ssl/server" ); 
 			service(sslsock);
 			sslsock->shutdown();
 			delete sslsock;

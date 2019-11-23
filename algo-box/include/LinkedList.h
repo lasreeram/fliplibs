@@ -76,6 +76,16 @@ template <typename T> class SinglyLinkedList{
 			return;
 		}
 
+		T get(int i){
+			if( (i+1) > _used )
+				throw debug_lib::Exception( "SinglyLinkedList:getNext no more elements" );
+			Node<T>* node = _head;
+			for( int j = 0; j < i; j++ ){
+				node = node->next;
+			}
+			return node->x;
+		}
+
 		T getNext(){
 			if( _used == 0 )
 				throw debug_lib::Exception( "SinglyLinkedList:getNext no more elements" );
@@ -87,6 +97,42 @@ template <typename T> class SinglyLinkedList{
 			if( _used == 0 ) 
 				_tail = NULL;
 			return x;
+		}
+
+		bool removeFirst(T& x){
+			if( _used == 0 )
+				return false;
+
+			Node<T>* prevnode = _head;
+			Node<T>* node = _head;
+			while ( node ){
+				if( node->x == x ){
+					if( prevnode == _head ){
+						pop();	
+						return true;
+					}
+					prevnode->next = node->next;
+					delete node;
+					return true;
+				} 
+				prevnode = node;
+				node = node->next;
+			}
+			return false;
+		}
+
+		bool contains(T& x){
+			if( _used == 0 )
+				return false;
+
+			Node<T>* node = _head;
+			while ( node ){
+				if( node->x == x ){
+					return true;
+				}
+				node = node->next;
+			}
+			return false;
 		}
 	private:
 		Node<T>* _head;
@@ -215,6 +261,7 @@ template <typename T> class DoublyLinkedList {
 };
 
 
+/*
 // - Space efficient linked list - a doubly linked list of blocks instead of individual elements
 // - SE Linked list has a very tight restriction on the number of elements. Each block contains at-least (b-1) and atmost (b+1) elements
 // - Wasted Space is of the order of O(b + n/b) - i.e. the last block is partially filled and all other blocks have atleast b-1 elements
@@ -463,6 +510,7 @@ template <typename T> class SpaceEfficientLinkedList {
 		}
 		
 };
+*/
 
 }
 #endif

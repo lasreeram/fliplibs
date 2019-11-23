@@ -25,7 +25,7 @@ int main(int argc, char** argv){
 	try{
 		TCPClientSocket* sock = new TCPClientSocket();
 		sock->connect(hname, sname);
-		SSLBioImpl* sslObj = new SSLBioImpl( false, "/home/hduser/ssl/client" );
+		SSLBioImpl* sslObj = new SSLBioImpl( false, "/home/sreeram/ssl/client" );
 		sslObj->doHandshake( sock, false );
 		int olen = sock->recv_header( buf, sizeof(buf) );
 		sslObj->decodeSSL( buf, olen, obuf, sizeof(obuf) );

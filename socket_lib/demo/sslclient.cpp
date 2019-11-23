@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 	try{
 		TCPClientSocket* sock = new TCPClientSocket();
 		sock->connect(hname, sname);
-		SSLClientSocket* sslsock = new SSLClientSocket( sock, "/home/hduser/ssl/client" );
+		SSLClientSocket* sslsock = new SSLClientSocket( sock, "/home/sreeram/ssl/client" );
 		sslsock->read( buf, sizeof(buf) );
 		std::cout << buf << std::endl;
 		sslsock->shutdown();
