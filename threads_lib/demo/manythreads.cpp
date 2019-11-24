@@ -16,10 +16,10 @@ class WithdrawWorker : public ThreadFunctor {
 			debug_lib::log( "executed withdraw successfully" );
 			for(int i = 0; i < 5; i++){
 				debug_lib::log( "doing work" );
-				//gMutex->lock();
+				gMutex->lock();
 				if( balance > 0 )
 					balance--;
-				//gMutex->unlock();
+				gMutex->unlock();
 				sleep(2);
 			}
 			return 0;
@@ -31,9 +31,9 @@ class DepositWorker : public ThreadFunctor {
 			debug_lib::log( "executed deposit successfully" );
 			for(int i = 0; i < 5; i++){
 				debug_lib::log( "doing work" );
-				//gMutex->lock();
+				gMutex->lock();
 				balance++;
-				//gMutex->unlock();
+				gMutex->unlock();
 				sleep(2);
 			}
 			return 0;
