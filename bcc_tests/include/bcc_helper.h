@@ -6,6 +6,7 @@
 class MyBccHelper{
 	public:	
 		void* my_malloc_function(size_t val);
+		void my_free_function(char* ptr);
 
 };
 #endif
